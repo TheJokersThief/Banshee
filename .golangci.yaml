@@ -1,0 +1,27 @@
+run:
+  modules-download-mode: vendor
+  timeout: 5m
+
+linters:
+  enable:
+  - errorlint
+  - wastedassign
+  - errcheck
+  - megacheck
+  - ineffassign
+  - typecheck
+  - dogsled
+  - exportloopref
+  - misspell
+  - goconst
+  - gofmt
+  - nakedret
+  - nolintlint
+  - gocritic
+  - unparam
+  - unconvert
+  - unused
+
+linters-settings:
+  errcheck:
+    exclude: errcheck-exclude.txt

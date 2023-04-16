@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    # disable rebase. merging dependabot PR will rebase all open PR blocking CI
+    rebase-strategy: "disabled"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    # disable rebase. merging dependabot PR will rebase all open PR blocking CI
+    rebase-strategy: "disabled"

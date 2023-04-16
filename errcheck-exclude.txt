@@ -1,0 +1,3 @@
+// Ignoring these makes defer statements simpler
+os.Close
+(*os.File).Close
