@@ -2,5 +2,5 @@
 package actions
 
 type Action struct {
-	Description string
+	Description string `fig:"description"`
 }

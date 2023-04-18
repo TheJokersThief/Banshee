@@ -7,11 +7,11 @@ import (
 )
 
 type MigrationConfig struct {
-	SearchQuery  string
-	Actions      []actions.Action
-	Condition    []banshee.Condition
-	PostCheckout []string
+	SearchQuery  string              `fig:"search_query"`
+	Actions      []actions.Action    `fig:"actions"`
+	Condition    []banshee.Condition `fig:"condition"`
+	PostCheckout []string            `fig:"post_checkout_commands"`
 
-	PRTitle    string
-	PRBodyFile string
+	PRTitle    string `fig:"pr_title"`
+	PRBodyFile string `fig:"pr_body_file"`
 }
