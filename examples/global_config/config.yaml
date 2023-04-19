@@ -1,0 +1,17 @@
+
+github:
+  use_github_app: false
+  token: "gha-12345656787800"
+
+  app_id: ""
+  app_installation_id: ""
+  app_private_key_filepath: ""
+
+options:
+  assign_code_reviewer_if_none_assigned: false
+
+defaults:
+  git_email: "no-reply@example.com"
+  git_name: "Example User"
+  organisation: "github"
+  code_reviewer: "no-one" # team slug
