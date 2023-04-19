@@ -2,14 +2,13 @@
 package configs
 
 import (
-	"github.com/thejokersthief/banshee/pkg/banshee"
-	"github.com/thejokersthief/banshee/pkg/banshee/actions"
+	"github.com/thejokersthief/banshee/pkg/actions"
 )
 
 type MigrationConfig struct {
 	SearchQuery  string              `fig:"search_query"`
 	Actions      []actions.Action    `fig:"actions"`
-	Condition    []banshee.Condition `fig:"condition"`
+	Condition    []actions.Condition `fig:"condition"`
 	PostCheckout []string            `fig:"post_checkout_commands"`
 
 	PRTitle    string `fig:"pr_title"`

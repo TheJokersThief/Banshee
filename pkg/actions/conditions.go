@@ -1,4 +1,4 @@
 // Conditions for whether a migration should be applied
-package banshee
+package actions
 
 type Condition struct{}
