@@ -1,4 +1,5 @@
-search_query: ""
+search_query: "reference-to-old.url"
+organisation: "example-org"
 
 actions: []
 condition: []

@@ -6,6 +6,7 @@ import (
 )
 
 type MigrationConfig struct {
+	Organisation string              `fig:"organisation"`
 	SearchQuery  string              `fig:"search_query"`
 	Actions      []actions.Action    `fig:"actions"`
 	Condition    []actions.Condition `fig:"condition"`
