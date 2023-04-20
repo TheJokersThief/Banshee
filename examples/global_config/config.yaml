@@ -3,8 +3,8 @@ github:
   use_github_app: false
   token: "gha-12345656787800"
 
-  app_id: ""
-  app_installation_id: ""
+  app_id: 0
+  app_installation_id: 0
   app_private_key_filepath: ""
 
 options:

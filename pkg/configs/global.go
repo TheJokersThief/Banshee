@@ -9,11 +9,11 @@ type GlobalConfig struct {
 	Github struct {
 		UseGithubApp bool `fig:"use_github_app"`
 
-		GithubToken string `fig:"token"`
+		Token string `fig:"token"`
 
-		GithubAppID             string `fig:"app_id"`
-		GithubAppInstallationID string `fig:"app_installation_id"`
-		GithubAppPrivateKeyPath string `fig:"app_private_key_filepath"`
+		AppID             int64  `fig:"app_id"`
+		AppInstallationID int64  `fig:"app_installation_id"`
+		AppPrivateKeyPath string `fig:"app_private_key_filepath"`
 	} `fig:"github"`
 
 	Options struct {

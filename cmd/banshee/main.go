@@ -6,9 +6,19 @@ import (
 	"path"
 
 	"github.com/alecthomas/kong"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/kkyr/fig"
 	"github.com/thejokersthief/banshee/pkg/configs"
+	"github.com/thejokersthief/banshee/pkg/core"
 )
+
+var FatalErrorStyling = lipgloss.NewStyle().
+	Bold(true).
+	Foreground(lipgloss.Color("#CD4B41")).
+	BorderStyle(lipgloss.DoubleBorder()).
+	BorderForeground(lipgloss.Color("#CD4B41")).
+	BorderTop(true).BorderBottom(true).
+	PaddingTop(1).PaddingBottom(1).PaddingLeft(5).PaddingRight(5)
 
 var CLI struct {
 	Version struct{} `cmd:"" help:"Print banshee CLI version"`
@@ -27,10 +37,13 @@ func main() {
 
 	switch ctx.Command() {
 	case "migrate <path>":
-		fmt.Println("migrating?")
 		var migrationConfig configs.MigrationConfig
 		migrationConfig = parseConfig(migrationConfig, CLI.Migrate.MigrationFile, "APP")
+		banshee, initErr := core.NewBanshee(globalConfig, migrationConfig)
+		handleErr(initErr)
 
+		migrationErr := banshee.Migrate()
+		handleErr(migrationErr)
 	case "version":
 		fmt.Println("versioning")
 	default:
@@ -58,4 +71,10 @@ func getFilePieces(filepath string) (string, string) {
 func printFatalError(err error) {
 	fmt.Println(FatalErrorStyling.Render(err.Error()))
 	os.Exit(1)
+}
+
+func handleErr(err error) {
+	if err != nil {
+		printFatalError(err)
+	}
 }

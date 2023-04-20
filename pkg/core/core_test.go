@@ -1,4 +1,4 @@
-package banshee
+package core
 
 import (
 	"testing"
