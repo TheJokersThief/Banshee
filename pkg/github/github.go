@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/go-git/go-git/v5"
@@ -78,9 +77,7 @@ func (gc *GithubClient) ShallowClone(repoFullName, dir string) (*git.Repository,
 			Username: "placeholderUsername", // anything except an empty string
 			Password: gc.accessToken,
 		},
-		Progress:     os.Stdout,
-		SingleBranch: true,
-		Depth:        1,
+		Depth: 1,
 	})
 
 	if err != nil {
