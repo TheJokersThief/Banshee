@@ -3,7 +3,9 @@ package core
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/thejokersthief/banshee/pkg/configs"
 	localGH "github.com/thejokersthief/banshee/pkg/github"
@@ -24,7 +26,7 @@ func NewBanshee(config configs.GlobalConfig, migConfig configs.MigrationConfig) 
 		return nil, err
 	}
 
-	if token, tokenPresent := os.LookupEnv("GITHUB_TOKEN"); tokenPresent {
+	if token, tokenPresent := os.LookupEnv("GITHUB_TOKEN"); tokenPresent && config.Github.Token == "" {
 		config.Github.Token = token
 	}
 
@@ -44,14 +46,27 @@ func (b *Banshee) Migrate() error {
 		org = b.GlobalConfig.Defaults.Organisation
 	}
 
-	query := fmt.Sprintf("org:%s %s", org, b.MigrationConfig.SearchQuery)
-	repos, err := b.GithubClient.GetMatchingRepos(query)
-	if err != nil {
-		return err
-	}
+	// query := fmt.Sprintf("org:%s %s", org, b.MigrationConfig.SearchQuery)
+	// repos, err := b.GithubClient.GetMatchingRepos(query)
+	// if err != nil {
+	// 	return err
+	// }
+
+	repos := []string{fmt.Sprintf("%s/containers", org)}
 
 	for _, repo := range repos {
-		fmt.Println(repo)
+		dir, err := os.MkdirTemp(os.TempDir(), strings.Replace(repo, "/", "-", -1))
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		defer os.RemoveAll(dir) // clean up
+		fmt.Printf("created %s\n", dir)
+
+		b.GithubClient.ShallowClone(repo, dir)
+
+		// time.Sleep(1 * time.Minute)
+		break
 	}
 
 	// Get list of repos

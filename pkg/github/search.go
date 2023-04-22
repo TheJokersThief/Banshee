@@ -19,7 +19,7 @@ func (g *GithubClient) GetMatchingRepos(query string) ([]string, error) {
 		searchErr := retry.Do(
 			func() error {
 				var err error
-				searchResult, resp, err = g.client.Search.Code(g.ctx, query, opt)
+				searchResult, resp, err = g.Client.Search.Code(g.ctx, query, opt)
 				return checkIfRecoverable(err)
 			},
 			defaultRetryOptions...,

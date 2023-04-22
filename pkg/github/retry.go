@@ -10,8 +10,10 @@ import (
 
 var (
 	defaultRetryOptions = []retry.Option{
+		retry.Delay(5 * time.Second),
+		retry.MaxJitter(3 * time.Second),
 		retry.Attempts(3),
-		retry.MaxDelay(time.Second * 2),
+		retry.MaxDelay(time.Second * 10),
 		retry.LastErrorOnly(true),
 	}
 )
