@@ -6,6 +6,7 @@ import (
 )
 
 type MigrationConfig struct {
+	BranchName   string              `fig:"branch_name"`
 	Organisation string              `fig:"organisation"`
 	SearchQuery  string              `fig:"search_query"`
 	Actions      []actions.Action    `fig:"actions"`

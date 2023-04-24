@@ -1,5 +1,6 @@
 search_query: "reference-to-old.url"
 organisation: "example-org"
+branch_name: "example/branch/name"
 
 actions: []
 condition: []

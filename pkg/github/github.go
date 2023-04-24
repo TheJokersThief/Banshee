@@ -8,6 +8,8 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/plumbing"
 	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-github/github"
 	"github.com/thejokersthief/banshee/pkg/configs"
@@ -69,8 +71,7 @@ func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context) (*Git
 	return ghClient, nil
 }
 
-func (gc *GithubClient) ShallowClone(repoFullName, dir string) (*git.Repository, error) {
-	// Clones the repository into the given dir, just as a normal git clone does
+func (gc *GithubClient) ShallowClone(repoFullName, dir, migrationBranchName string) (*git.Repository, error) {
 	repo, err := git.PlainClone(dir, false, &git.CloneOptions{
 		URL: fmt.Sprintf("https://github.com/%s.git", repoFullName),
 		Auth: &gitHttp.BasicAuth{
@@ -82,6 +83,20 @@ func (gc *GithubClient) ShallowClone(repoFullName, dir string) (*git.Repository,
 
 	if err != nil {
 		return nil, err
+	}
+
+	_, branchNotFound := repo.Branch(migrationBranchName)
+	if branchNotFound != nil {
+		branchErr := repo.CreateBranch(&config.Branch{Name: migrationBranchName})
+		if branchErr != nil {
+			return nil, branchErr
+		}
+	}
+
+	wt, _ := repo.Worktree()
+	checkoutErr := wt.Checkout(&git.CheckoutOptions{Branch: plumbing.ReferenceName(migrationBranchName)})
+	if checkoutErr != nil {
+		return nil, checkoutErr
 	}
 
 	return repo, nil

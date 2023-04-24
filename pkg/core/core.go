@@ -6,7 +6,11 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/thejokersthief/banshee/pkg/actions"
 	"github.com/thejokersthief/banshee/pkg/configs"
 	localGH "github.com/thejokersthief/banshee/pkg/github"
 )
@@ -63,9 +67,33 @@ func (b *Banshee) Migrate() error {
 		defer os.RemoveAll(dir) // clean up
 		fmt.Printf("created %s\n", dir)
 
-		b.GithubClient.ShallowClone(repo, dir)
+		gitRepo, cloneErr := b.GithubClient.ShallowClone(repo, dir, b.MigrationConfig.BranchName)
+		if cloneErr != nil {
+			return cloneErr
+		}
+		for _, action := range b.MigrationConfig.Actions {
+			actionErr := actions.RunAction(action.Action, dir, action.Description, action.Input)
+			if actionErr != nil {
+				return actionErr
+			}
 
-		// time.Sleep(1 * time.Minute)
+			tree, _ := gitRepo.Worktree()
+			state, _ := tree.Status()
+			// check if git dirty
+			if !state.IsClean() {
+				// if dirty, commit with action.Description as message
+				tree.AddGlob(".")
+				tree.Commit(action.Description, &git.CommitOptions{
+					Author: &object.Signature{
+						Name:  b.GlobalConfig.Defaults.GitName,
+						Email: b.GlobalConfig.Defaults.GitEmail,
+						When:  time.Now(),
+					},
+				})
+			}
+		}
+
+		gitRepo.Push(&git.PushOptions{})
 		break
 	}
 
