@@ -9,10 +9,10 @@ require (
 	github.com/charmbracelet/lipgloss v0.7.1
 	github.com/go-git/go-git/v5 v5.6.1
 	github.com/google/go-github v17.0.0+incompatible
+	github.com/google/go-github/v52 v52.0.0
 	github.com/icholy/replace v0.6.0
 	github.com/kkyr/fig v0.3.1
 	github.com/sirupsen/logrus v1.9.0
-	github.com/stretchr/testify v1.8.2
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/oauth2 v0.7.0
 )
@@ -23,7 +23,6 @@ require (
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/cloudflare/circl v1.1.0 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
@@ -42,10 +41,10 @@ require (
 	github.com/muesli/termenv v0.15.1 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/skeema/knownhosts v1.1.0 // indirect
+	github.com/stretchr/testify v1.8.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/net v0.9.0 // indirect

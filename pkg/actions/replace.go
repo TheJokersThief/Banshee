@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/icholy/replace"
+	"github.com/sirupsen/logrus"
 	"github.com/yargevad/filepathx"
 )
 
@@ -14,15 +16,17 @@ type Replace struct {
 	BaseDir   string
 	OldString string `fig:"old"`
 	NewString string `fig:"new"`
-	Glob      string `fig:"glob" default:"./"`
+	Glob      string `fig:"glob" default:"**"`
 }
 
 const threadCount = 10
 
+var blacklistedDirectories = []string{".git"}
+
 func NewReplaceAction(dir string, description string, input map[string]string) *Replace {
 	glob, hasSpecifiedGlob := input["glob"]
 	if !hasSpecifiedGlob {
-		glob = "./"
+		glob = "**"
 	}
 
 	return &Replace{
@@ -41,10 +45,11 @@ func (r *Replace) Run() error {
 		go r.findAndReplaceWorker(files, errors)
 	}
 
-	matches, err := filepathx.Glob(r.Glob)
+	matches, err := filepathx.Glob(r.BaseDir + "/" + r.Glob)
 	if err != nil {
 		return err
 	}
+	matches = r.removeBlacklistedDirectories(matches)
 
 	for _, match := range matches {
 		files <- match
@@ -63,8 +68,35 @@ func (r *Replace) Run() error {
 	return nil
 }
 
+func (r *Replace) removeBlacklistedDirectories(matches []string) []string {
+	newMatches := []string{}
+	for _, match := range matches {
+
+		isAllowed := true
+		for _, item := range blacklistedDirectories {
+			if strings.Contains(match, item) {
+				isAllowed = false
+				break
+			}
+		}
+
+		if isAllowed {
+			newMatches = append(newMatches, match)
+		}
+	}
+
+	return newMatches
+}
+
 func (r *Replace) findAndReplaceWorker(files <-chan string, errors chan<- error) {
 	for file := range files {
+		content, _ := os.ReadFile(file)
+		if !strings.Contains(string(content), r.OldString) {
+			continue
+		}
+
+		logrus.Debug("Replacing", r.OldString, "with", r.NewString, "in", file)
+
 		f, err := os.Open(file)
 		if err != nil {
 			errors <- err

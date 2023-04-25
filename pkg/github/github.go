@@ -5,14 +5,15 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"strings"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v52/github"
+	"github.com/sirupsen/logrus"
 	"github.com/thejokersthief/banshee/pkg/configs"
 	"golang.org/x/oauth2"
 )
@@ -79,35 +80,84 @@ func (gc *GithubClient) ShallowClone(repoFullName, dir, migrationBranchName stri
 			Username: "placeholderUsername", // anything except an empty string
 			Password: gc.accessToken,
 		},
-		Depth: 1,
+		// Depth: 1 // Unfortunately there's an issue in go-git that means using depth breaks the working tree
 	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	_, branchNotFound := repo.Branch(migrationBranchName)
-	if branchNotFound != nil {
-		branchErr := repo.CreateBranch(&config.Branch{Name: migrationBranchName})
-		if branchErr != nil {
-			return nil, branchErr
-		}
+	wt, wtErr := repo.Worktree()
+	if wtErr != nil {
+		return nil, wtErr
 	}
 
-	wt, _ := repo.Worktree()
-	checkoutErr := wt.Checkout(&git.CheckoutOptions{Branch: plumbing.ReferenceName(migrationBranchName)})
+	h, headErr := repo.Head()
+	if headErr != nil {
+		return nil, headErr
+	}
+
+	checkoutErr := wt.Checkout(
+		&git.CheckoutOptions{
+			Hash:   h.Hash(),
+			Branch: plumbing.ReferenceName("refs/heads/" + migrationBranchName),
+			Create: true,
+			Keep:   true,
+		},
+	)
 	if checkoutErr != nil {
 		return nil, checkoutErr
+	}
+
+	logrus.Debug("Pulling ", plumbing.NewBranchReferenceName(migrationBranchName))
+	pullErr := wt.Pull(&git.PullOptions{
+		RemoteName:    "origin",
+		ReferenceName: plumbing.NewBranchReferenceName(migrationBranchName),
+		Auth: &gitHttp.BasicAuth{
+			Username: "placeholderUsername", // anything except an empty string
+			Password: gc.accessToken,
+		},
+	})
+	if pullErr != nil && (pullErr != git.NoErrAlreadyUpToDate && pullErr.Error() != "reference not found") {
+		return nil, pullErr
 	}
 
 	return repo, nil
 }
 
-func (gc *GithubClient) GetDefaultBranch(repo *git.Repository) (string, error) {
-	ref, err := repo.Reference("refs/remotes/origin/HEAD", true)
-	if err != nil {
-		return "", err
+func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
+	logrus.Debug("Pushing changes")
+
+	pushErr := gitRepo.Push(
+		&git.PushOptions{
+			RemoteName: "origin",
+			Auth: &gitHttp.BasicAuth{
+				Username: "placeholderUsername", // anything except an empty string
+				Password: gc.accessToken,
+			},
+			RefSpecs: []config.RefSpec{
+				config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewBranchReferenceName(branch)),
+			},
+		},
+	)
+
+	return pushErr
+}
+
+func (gc *GithubClient) GetDefaultBranch(owner, repo string) (string, error) {
+	var ghRepo *github.Repository
+	searchErr := retry.Do(
+		func() error {
+			var err error
+			ghRepo, _, err = gc.Client.Repositories.Get(gc.ctx, owner, repo)
+			return checkIfRecoverable(err)
+		},
+		defaultRetryOptions...,
+	)
+
+	if searchErr != nil {
+		return "", searchErr
 	}
 
-	return strings.Replace(ref.String(), "refs/remotes/origin/", "", -1), nil
+	return *ghRepo.DefaultBranch, nil
 }

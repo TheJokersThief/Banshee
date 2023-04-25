@@ -7,4 +7,4 @@ condition: []
 post_checkout_commands: []
 
 pr_title: ""
-pr_body_file: ""
+pr_body_file: "examples/prbody.md"

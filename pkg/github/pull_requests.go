@@ -4,16 +4,18 @@ package github
 import (
 	"context"
 
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v52/github"
 )
 
 func (g *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, merge_branch string) (string, error) {
+	asDraft := true
 	newPR := &github.NewPullRequest{
 		Title:               github.String(title),
 		Head:                github.String(merge_branch),
 		Base:                github.String(base_branch),
 		Body:                github.String(body),
 		MaintainerCanModify: github.Bool(true),
+		Draft:               &asDraft,
 	}
 
 	ctx := context.Background()

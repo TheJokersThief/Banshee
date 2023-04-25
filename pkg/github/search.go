@@ -3,7 +3,7 @@ package github
 
 import (
 	"github.com/avast/retry-go/v4"
-	"github.com/google/go-github/github"
+	"github.com/google/go-github/v52/github"
 )
 
 func (g *GithubClient) GetMatchingRepos(query string) ([]string, error) {
