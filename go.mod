@@ -9,9 +9,11 @@ require (
 	github.com/charmbracelet/lipgloss v0.7.1
 	github.com/go-git/go-git/v5 v5.6.1
 	github.com/google/go-github v17.0.0+incompatible
+	github.com/icholy/replace v0.6.0
 	github.com/kkyr/fig v0.3.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.2
+	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/oauth2 v0.7.0
 )
 
@@ -48,6 +50,7 @@ require (
 	golang.org/x/crypto v0.7.0 // indirect
 	golang.org/x/net v0.9.0 // indirect
 	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/text v0.9.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

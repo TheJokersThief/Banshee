@@ -59,6 +59,8 @@ func (b *Banshee) Migrate() error {
 	repos := []string{fmt.Sprintf("%s/containers", org)}
 
 	for _, repo := range repos {
+		madeChanges := false
+
 		dir, err := os.MkdirTemp(os.TempDir(), strings.Replace(repo, "/", "-", -1))
 		if err != nil {
 			log.Fatal(err)
@@ -81,8 +83,9 @@ func (b *Banshee) Migrate() error {
 			state, _ := tree.Status()
 			// check if git dirty
 			if !state.IsClean() {
+				madeChanges = true
 				// if dirty, commit with action.Description as message
-				tree.AddGlob(".")
+				tree.AddGlob(dir)
 				tree.Commit(action.Description, &git.CommitOptions{
 					Author: &object.Signature{
 						Name:  b.GlobalConfig.Defaults.GitName,
@@ -93,8 +96,11 @@ func (b *Banshee) Migrate() error {
 			}
 		}
 
-		gitRepo.Push(&git.PushOptions{})
-		break
+		if madeChanges {
+			// If we made at least one change, push to the remote
+			gitRepo.Push(&git.PushOptions{})
+		}
+
 	}
 
 	// Get list of repos
