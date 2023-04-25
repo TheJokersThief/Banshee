@@ -14,6 +14,8 @@ import (
 
 func (b *Banshee) Migrate() error {
 
+	b.log = logrus.WithField("command", "migrate")
+
 	org := b.MigrationConfig.Organisation
 	if b.MigrationConfig.Organisation == "" {
 		org = b.GlobalConfig.Defaults.Organisation
@@ -28,29 +30,22 @@ func (b *Banshee) Migrate() error {
 	repos := []string{fmt.Sprintf("%s/containers", org)}
 
 	for _, repo := range repos {
-		_, repoErr := b.handleRepo(org, repo)
+		_, repoErr := b.handleRepo(b.log.WithField("repo", repo), org, repo)
 		if repoErr != nil {
 			return repoErr
 		}
 	}
-
-	// Get list of repos
-	// For every repo:
-	//		Shallow clone repo
-	//		Create new git branch
-	//		for each action
-	// 			perform the action
-	//			add changed files and commit with action description
-	// 		Create a PR the changes
 	return nil
 }
 
 // Handle the migration for a repo
-func (b *Banshee) handleRepo(org, repo string) (string, error) {
+func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error) {
 	madeChanges := false
 	repoNameOnly := strings.Replace(repo, org+"/", "", -1)
 
-	dir, gitRepo, defaultBranch, cloneErr := b.cloneRepo(org, repo)
+	log.Info("Processing ", repo)
+
+	dir, gitRepo, defaultBranch, cloneErr := b.cloneRepo(log, org, repo)
 	if cloneErr != nil {
 		return "", cloneErr
 	}
@@ -59,28 +54,25 @@ func (b *Banshee) handleRepo(org, repo string) (string, error) {
 	defer os.RemoveAll(dir)
 
 	for _, action := range b.MigrationConfig.Actions {
-		actionErr := actions.RunAction(action.Action, dir, action.Description, action.Input)
+		actionErr := actions.RunAction(log, action.Action, dir, action.Description, action.Input)
 		if actionErr != nil {
 			return "", actionErr
 		}
 
 		tree, _ := gitRepo.Worktree()
 		state, _ := tree.Status()
-		logrus.Debug("Checking if dirty...")
+		log.Debug("Checking if dirty...")
 		// check if git dirty
 		if !state.IsClean() {
-			logrus.Debug("Is dirty, committing changes")
-			madeChanges = true
+			log.Debug("Is dirty, committing changes: ", action.Description)
 			// if dirty, commit with action.Description as message
-
-			addStr := "./"
-			logrus.Debug(addStr)
-			addErr := tree.AddGlob(addStr)
+			madeChanges = true
+			addErr := tree.AddGlob("./")
 			if addErr != nil {
 				return "", addErr
 			}
 
-			commit, commitErr := tree.Commit(action.Description, &git.CommitOptions{
+			_, commitErr := tree.Commit(action.Description, &git.CommitOptions{
 				Author: &object.Signature{
 					Name:  b.GlobalConfig.Defaults.GitName,
 					Email: b.GlobalConfig.Defaults.GitEmail,
@@ -91,12 +83,6 @@ func (b *Banshee) handleRepo(org, repo string) (string, error) {
 			if commitErr != nil {
 				return "", commitErr
 			}
-
-			obj, _ := gitRepo.CommitObject(commit)
-			fmt.Println(obj)
-
-			newState, _ := tree.Status()
-			logrus.Debug("After commit: ", newState.IsClean())
 		}
 	}
 
@@ -107,7 +93,12 @@ func (b *Banshee) handleRepo(org, repo string) (string, error) {
 			return "", err
 		}
 
-		logrus.Info("Created PR for ", repo, ": ", htmlURL)
+		if htmlURL == "" {
+			log.Info("PR already exists, not creating one")
+			return "", nil
+		}
+
+		log.Info("Created PR for ", repo, ": ", htmlURL)
 		return htmlURL, nil
 	}
 
@@ -136,7 +127,7 @@ func (b *Banshee) pushChanges(gitRepo *git.Repository, org, repoName, defaultBra
 }
 
 // Clone a new repo, and fetch info about its default branch
-func (b *Banshee) cloneRepo(org, repo string) (string, *git.Repository, string, error) {
+func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, *git.Repository, string, error) {
 	repoNameOnly := strings.Replace(repo, org+"/", "", -1)
 	dir, err := os.MkdirTemp(os.TempDir(), strings.Replace(repo, "/", "-", -1))
 	if err != nil {

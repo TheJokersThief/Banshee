@@ -20,8 +20,12 @@ func (g *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, me
 
 	ctx := context.Background()
 	pr, _, err := g.Client.PullRequests.Create(ctx, org, repo, newPR)
+
 	if err != nil {
-		return "", err
+		ghErr := err.(*github.ErrorResponse)
+		if ghErr.Message != "Validation Failed" {
+			return "", err
+		}
 	}
 
 	return pr.GetHTMLURL(), nil

@@ -4,6 +4,8 @@ package actions
 import (
 	"os/exec"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 type RunCommand struct {
@@ -18,7 +20,7 @@ func NewRunCommandAction(dir string, description string, input map[string]string
 	}
 }
 
-func (r *RunCommand) Run() error {
+func (r *RunCommand) Run(log *logrus.Entry) error {
 	commandPieces := strings.Split(r.Command, " ")
 	command := commandPieces[0]
 	args := commandPieces[1 : len(commandPieces)-1]

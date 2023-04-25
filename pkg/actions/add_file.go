@@ -1,6 +1,8 @@
 // Do a find and replace for a string during a migration
 package actions
 
+import "github.com/sirupsen/logrus"
+
 type AddFile struct {
 	BaseDir string
 	NewFile string `fig:"file"`
@@ -15,6 +17,6 @@ func NewAddFileAction(dir string, description string, input map[string]string) *
 	}
 }
 
-func (r *AddFile) Run() error {
+func (r *AddFile) Run(log *logrus.Entry) error {
 	return nil
 }

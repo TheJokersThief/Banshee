@@ -1,10 +1,14 @@
 // Base action
 package actions
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/sirupsen/logrus"
+)
 
 type ActionRunner interface {
-	Run() error
+	Run(log *logrus.Entry) error
 }
 
 type Action struct {
@@ -15,8 +19,10 @@ type Action struct {
 	Input       map[string]string `fig:"input"`
 }
 
-func RunAction(actionID string, dir string, description string, input map[string]string) error {
+func RunAction(log *logrus.Entry, actionID string, dir string, description string, input map[string]string) error {
 	var action ActionRunner
+
+	actionLog := log.WithField("action", actionID)
 
 	switch actionID {
 	case "add_file":
@@ -29,5 +35,5 @@ func RunAction(actionID string, dir string, description string, input map[string
 		return fmt.Errorf("Unrecognised command: %s", actionID)
 	}
 
-	return action.Run()
+	return action.Run(actionLog)
 }

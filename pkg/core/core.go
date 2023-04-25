@@ -18,10 +18,13 @@ type Banshee struct {
 	MigrationConfig *configs.MigrationConfig
 	GithubClient    *localGH.GithubClient
 
+	log *logrus.Entry
 	ctx context.Context
 }
 
 func NewBanshee(config configs.GlobalConfig, migConfig configs.MigrationConfig) (*Banshee, error) {
+	log := logrus.WithField("command", "unset")
+
 	ctx := context.Background()
 	client, err := localGH.NewGithubClient(config, ctx)
 	if err != nil {
@@ -37,6 +40,7 @@ func NewBanshee(config configs.GlobalConfig, migConfig configs.MigrationConfig) 
 		MigrationConfig: &migConfig,
 		GithubClient:    client,
 
+		log: log,
 		ctx: ctx,
 	}, nil
 }

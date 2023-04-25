@@ -37,12 +37,12 @@ func NewReplaceAction(dir string, description string, input map[string]string) *
 	}
 }
 
-func (r *Replace) Run() error {
+func (r *Replace) Run(log *logrus.Entry) error {
 
 	files := make(chan string)
 	errors := make(chan error)
 	for workerCount := 0; workerCount < threadCount; workerCount++ {
-		go r.findAndReplaceWorker(files, errors)
+		go r.findAndReplaceWorker(log, files, errors)
 	}
 
 	matches, err := filepathx.Glob(r.BaseDir + "/" + r.Glob)
@@ -88,14 +88,14 @@ func (r *Replace) removeBlacklistedDirectories(matches []string) []string {
 	return newMatches
 }
 
-func (r *Replace) findAndReplaceWorker(files <-chan string, errors chan<- error) {
+func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, errors chan<- error) {
 	for file := range files {
 		content, _ := os.ReadFile(file)
 		if !strings.Contains(string(content), r.OldString) {
 			continue
 		}
 
-		logrus.Debug("Replacing", r.OldString, "with", r.NewString, "in", file)
+		log.Debug("Replacing ", r.OldString, " with ", r.NewString, " in ", file)
 
 		f, err := os.Open(file)
 		if err != nil {
