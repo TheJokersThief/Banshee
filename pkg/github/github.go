@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/go-git/go-git/v5"
@@ -100,4 +101,13 @@ func (gc *GithubClient) ShallowClone(repoFullName, dir, migrationBranchName stri
 	}
 
 	return repo, nil
+}
+
+func (gc *GithubClient) GetDefaultBranch(repo *git.Repository) (string, error) {
+	ref, err := repo.Reference("refs/remotes/origin/HEAD", true)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.Replace(ref.String(), "refs/remotes/origin/", "", -1), nil
 }

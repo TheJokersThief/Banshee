@@ -73,6 +73,12 @@ func (b *Banshee) Migrate() error {
 		if cloneErr != nil {
 			return cloneErr
 		}
+
+		defaultBranch, defaultBranchErr := b.GithubClient.GetDefaultBranch(gitRepo)
+		if defaultBranchErr != nil {
+			return defaultBranchErr
+		}
+
 		for _, action := range b.MigrationConfig.Actions {
 			actionErr := actions.RunAction(action.Action, dir, action.Description, action.Input)
 			if actionErr != nil {
@@ -99,6 +105,17 @@ func (b *Banshee) Migrate() error {
 		if madeChanges {
 			// If we made at least one change, push to the remote
 			gitRepo.Push(&git.PushOptions{})
+
+			bodyText, prFileErr := os.ReadFile(b.MigrationConfig.PRBodyFile)
+			if prFileErr != nil {
+				return prFileErr
+			}
+			htmlURL, prErr := b.GithubClient.CreatePullRequest(org, strings.Replace(repo, org+"/", "", -1), b.MigrationConfig.PRTitle, string(bodyText), defaultBranch, b.MigrationConfig.BranchName)
+			if prErr != nil {
+				return prErr
+			}
+
+			fmt.Println(htmlURL)
 		}
 
 	}
