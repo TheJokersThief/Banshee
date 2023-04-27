@@ -1,6 +1,8 @@
 package github
 
 import (
+	"strings"
+
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -10,27 +12,25 @@ import (
 const defaultRemote = "origin"
 
 // Checkout a local branch, switching the working tree
-func (gc *GithubClient) Checkout(branch string, gitRepo *git.Repository) error {
+func (gc *GithubClient) Checkout(branch string, gitRepo *git.Repository, create bool) error {
 	wt, wtErr := gitRepo.Worktree()
 	if wtErr != nil {
 		return wtErr
 	}
 
-	h, headErr := gitRepo.Head()
-	if headErr != nil {
-		return headErr
-	}
-
 	checkoutErr := wt.Checkout(
 		&git.CheckoutOptions{
-			Hash:   h.Hash(),
 			Branch: plumbing.NewBranchReferenceName(branch),
-			Create: true,
+			Create: create,
 			Keep:   true,
 		},
 	)
 
-	return checkoutErr
+	if checkoutErr != nil && !strings.Contains(checkoutErr.Error(), "already exists") {
+		return checkoutErr
+	}
+
+	return nil
 }
 
 // Fetch from remote branch
@@ -46,7 +46,11 @@ func (gc *GithubClient) Fetch(branch string, gitRepo *git.Repository) error {
 			config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewRemoteReferenceName(defaultRemote, branch)),
 		},
 	})
-	return fetchErr
+
+	if fetchErr != nil && (fetchErr != git.NoErrAlreadyUpToDate && !strings.Contains(fetchErr.Error(), "couldn't find remote ref")) {
+		return fetchErr
+	}
+	return nil
 }
 
 // Pull from remote branch
@@ -68,7 +72,11 @@ func (gc *GithubClient) Pull(branch string, gitRepo *git.Repository) error {
 		SingleBranch: true,
 	})
 
-	return pullErr
+	if pullErr != nil && (pullErr != git.NoErrAlreadyUpToDate && pullErr.Error() != "reference not found") {
+		return pullErr
+	}
+
+	return nil
 }
 
 // Push to remote branch

@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -23,6 +24,13 @@ func (b *Banshee) Migrate() error {
 
 	if (len(b.MigrationConfig.ListOfRepos) > 0) == (b.MigrationConfig.SearchQuery != "") {
 		return fmt.Errorf("You may only use one of search_query or repos")
+	}
+
+	if b.GlobalConfig.Options.CacheRepos.Enabled {
+		cacheErr := b.createCacheRepo(b.log, b.GlobalConfig.Options.CacheRepos.Directory)
+		if cacheErr != nil {
+			return cacheErr
+		}
 	}
 
 	var repos []string
@@ -56,6 +64,21 @@ func (b *Banshee) Migrate() error {
 	return nil
 }
 
+func (b *Banshee) createCacheRepo(log *logrus.Entry, path string) error {
+	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		err := os.Mkdir(path, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *Banshee) getCacheRepoPath(org, repo string) string {
+	return fmt.Sprintf("%s/%s-%s", b.GlobalConfig.Options.CacheRepos.Directory, org, repo)
+}
+
 // Handle the migration for a repo
 func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error) {
 	madeChanges := false
@@ -68,8 +91,10 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 		return "", cloneErr
 	}
 
-	// Delete the repo directory when this function returns
-	defer os.RemoveAll(dir)
+	if !b.GlobalConfig.Options.CacheRepos.Enabled {
+		// If we're not caching repos, delete the repo directory when this function returns
+		defer os.RemoveAll(dir)
+	}
 
 	for _, action := range b.MigrationConfig.Actions {
 		actionErr := actions.RunAction(log, action.Action, dir, action.Description, action.Input)
@@ -147,11 +172,20 @@ func (b *Banshee) pushChanges(gitRepo *git.Repository, org, repoName, defaultBra
 // Clone a new repo, and fetch info about its default branch
 func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, *git.Repository, string, error) {
 	repoNameOnly := strings.Replace(repo, org+"/", "", -1)
-	dir, err := os.MkdirTemp(os.TempDir(), strings.Replace(repo, "/", "-", -1))
-	if err != nil {
-		return "", nil, "", err
+
+	var dir string
+	var mkDirErr error
+	if b.GlobalConfig.Options.CacheRepos.Enabled {
+		dir = b.getCacheRepoPath(org, repoNameOnly)
+		mkDirErr = b.createCacheRepo(log, dir)
+	} else {
+		dir, mkDirErr = os.MkdirTemp(os.TempDir(), strings.Replace(repo, "/", "-", -1))
 	}
-	logrus.Debug("Created ", dir)
+	if mkDirErr != nil {
+		return "", nil, "", mkDirErr
+	}
+
+	logrus.Debug("Using ", dir)
 
 	gitRepo, cloneErr := b.GithubClient.ShallowClone(org, repoNameOnly, dir, b.MigrationConfig.BranchName)
 	if cloneErr != nil {

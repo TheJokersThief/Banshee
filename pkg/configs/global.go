@@ -18,7 +18,12 @@ type GlobalConfig struct {
 
 	Options struct {
 		AssignCodeReviewerIfNoneAssigned bool `fig:"assign_code_reviewer_if_none_assigned"`
-		ShowGitOutput                    bool `flag:"show_git_output"`
+		ShowGitOutput                    bool `fig:"show_git_output"`
+
+		CacheRepos struct {
+			Enabled   bool   `fig:"enabled"`
+			Directory string `fig:"directory"`
+		} `fig:"cache_repos"`
 	} `fig:"options"`
 
 	Defaults struct {

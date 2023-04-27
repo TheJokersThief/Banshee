@@ -10,6 +10,9 @@ github:
 options:
   assign_code_reviewer_if_none_assigned: false
   show_git_output: false # Show the output from all git actions (e.g. clones, pulls and fetches)
+  cache_repos: 
+    enabled: false # If enabled, will store all downloaded repos permanently
+    directory: "repos.cache"
 
 defaults:
   git_email: "no-reply@example.com"
