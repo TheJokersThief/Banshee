@@ -18,6 +18,7 @@ var (
 	}
 )
 
+// Checks if the error should be retried or not
 func checkIfRecoverable(err error) error {
 	_, isRateLimit := err.(*github.RateLimitError)
 	_, isAbuseLimit := err.(*github.AbuseRateLimitError)

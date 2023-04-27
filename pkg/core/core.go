@@ -31,6 +31,7 @@ func NewBanshee(config configs.GlobalConfig, migConfig configs.MigrationConfig) 
 		return nil, err
 	}
 
+	// It's a common pattern to set a personal accesstoken in the environment under this name
 	if token, tokenPresent := os.LookupEnv("GITHUB_TOKEN"); tokenPresent && config.Github.Token == "" {
 		config.Github.Token = token
 	}

@@ -3,6 +3,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,7 +11,6 @@ import (
 	"github.com/avast/retry-go/v4"
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
 	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
@@ -21,14 +21,21 @@ import (
 )
 
 type GithubClient struct {
-	Client *github.Client
-	Writer sideband.Progress
+	Client       *github.Client
+	Writer       sideband.Progress
+	GlobalConfig *configs.GlobalConfig
 
 	log         *logrus.Entry
 	accessToken string
 	ctx         context.Context
 }
 
+var (
+	AppConfigMissing   = errors.New("Config missing for AppID, InstallationID or PrivateKeyPath")
+	TokenConfigMissing = errors.New("Config missing for GitHub Token")
+)
+
+// Build a new GitHub client using the global config
 func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context, log *logrus.Entry) (*GithubClient, error) {
 
 	var showOutput sideband.Progress
@@ -37,61 +44,74 @@ func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context, log *
 	}
 
 	ghClient := &GithubClient{
-		ctx:    ctx,
-		log:    log.WithField("client", "GithubClient"),
-		Writer: showOutput,
+		GlobalConfig: &globalConf,
+		ctx:          ctx,
+		log:          log.WithField("client", "GithubClient"),
+		Writer:       showOutput,
 	}
+
 	if globalConf.Github.UseGithubApp {
+		return newGithubAppClient(globalConf, ghClient, ctx)
+	}
 
-		configMissing := (globalConf.Github.AppID == 0 ||
-			globalConf.Github.AppInstallationID == 0 ||
-			globalConf.Github.AppPrivateKeyPath == "")
-		if configMissing {
-			return nil, fmt.Errorf("Config missing for AppID, InstallationID or PrivateKeyPath")
-		}
+	return newGithubTokenClient(globalConf, ghClient)
+}
 
-		itr, err := ghinstallation.NewKeyFromFile(
-			http.DefaultTransport,
-			globalConf.Github.AppID,
-			globalConf.Github.AppInstallationID,
-			globalConf.Github.AppPrivateKeyPath,
-		)
+// Create a GitHub client that uses token authentication
+func newGithubTokenClient(globalConf configs.GlobalConfig, ghClient *GithubClient) (*GithubClient, error) {
+	configMissing := (globalConf.Github.Token == "")
+	if configMissing {
+		return nil, TokenConfigMissing
+	}
 
-		if err != nil {
-			return nil, err
-		}
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(
+		&oauth2.Token{AccessToken: globalConf.Github.Token},
+	)
+	tc := oauth2.NewClient(ctx, ts)
 
-		// Use installation transport with client.
-		ghClient.Client = github.NewClient(&http.Client{Transport: itr})
-		ghClient.accessToken, err = itr.Token(ctx)
-		if err != nil {
-			return nil, err
-		}
-	} else {
+	ghClient.Client = github.NewClient(tc)
+	ghClient.accessToken = globalConf.Github.Token
 
-		configMissing := (globalConf.Github.Token == "")
-		if configMissing {
-			return nil, fmt.Errorf("Config missing for GitHub Token")
-		}
+	return ghClient, nil
+}
 
-		ctx := context.Background()
-		ts := oauth2.StaticTokenSource(
-			&oauth2.Token{AccessToken: globalConf.Github.Token},
-		)
-		tc := oauth2.NewClient(ctx, ts)
+// Create a GitHub client that uses App authentication
+func newGithubAppClient(globalConf configs.GlobalConfig, ghClient *GithubClient, ctx context.Context) (*GithubClient, error) {
+	configMissing := (globalConf.Github.AppID == 0 ||
+		globalConf.Github.AppInstallationID == 0 ||
+		globalConf.Github.AppPrivateKeyPath == "")
+	if configMissing {
+		return nil, AppConfigMissing
+	}
 
-		ghClient.Client = github.NewClient(tc)
-		ghClient.accessToken = globalConf.Github.Token
+	itr, err := ghinstallation.NewKeyFromFile(
+		http.DefaultTransport,
+		globalConf.Github.AppID,
+		globalConf.Github.AppInstallationID,
+		globalConf.Github.AppPrivateKeyPath,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Use installation transport with client.
+	ghClient.Client = github.NewClient(&http.Client{Transport: itr})
+	ghClient.accessToken, err = itr.Token(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	return ghClient, nil
 }
 
+// Clone the smallest version of a repo we can
 func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName string) (*git.Repository, error) {
 	defaultBranch, _ := gc.GetDefaultBranch(org, repoName)
 	gitURL := fmt.Sprintf("https://github.com/%s/%s.git", org, repoName)
-	gc.log.Info("Cloning ", gitURL, " [", defaultBranch, "]...")
 
+	gc.log.Info("Cloning ", gitURL, " [", defaultBranch, "]...")
 	repo, err := git.PlainClone(dir, false, &git.CloneOptions{
 		Progress: gc.Writer,
 		URL:      gitURL,
@@ -108,54 +128,19 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 		return nil, err
 	}
 
-	wt, wtErr := repo.Worktree()
-	if wtErr != nil {
-		return nil, wtErr
-	}
-
-	h, headErr := repo.Head()
-	if headErr != nil {
-		return nil, headErr
-	}
-
-	checkoutErr := wt.Checkout(
-		&git.CheckoutOptions{
-			Hash:   h.Hash(),
-			Branch: plumbing.NewBranchReferenceName(migrationBranchName),
-			Create: true,
-			Keep:   true,
-		},
-	)
+	checkoutErr := gc.Checkout(migrationBranchName, repo)
 	if checkoutErr != nil {
 		return nil, checkoutErr
 	}
 
-	gc.log.Debug("Fetching references for ", plumbing.NewBranchReferenceName(migrationBranchName))
-	fetchErr := repo.Fetch(&git.FetchOptions{
-		Progress: gc.Writer,
-		Auth: &gitHttp.BasicAuth{
-			Username: "placeholderUsername", // anything except an empty string
-			Password: gc.accessToken,
-		},
-		RefSpecs: []config.RefSpec{
-			config.RefSpec(plumbing.NewBranchReferenceName(migrationBranchName) + ":" + plumbing.NewRemoteReferenceName("origin", migrationBranchName)),
-		},
-	})
+	fetchErr := gc.Fetch(migrationBranchName, repo)
+	// "Couldn't find remote ref" happens if the branch hasn't been created on the remote
 	if fetchErr != nil && !strings.Contains(fetchErr.Error(), "couldn't find remote ref") {
 		return nil, fetchErr
 	}
 
-	gc.log.Debug("Pulling ", plumbing.NewBranchReferenceName(migrationBranchName))
-	pullErr := wt.Pull(&git.PullOptions{
-		Progress:      gc.Writer,
-		RemoteName:    "origin",
-		ReferenceName: plumbing.NewBranchReferenceName(migrationBranchName),
-		Auth: &gitHttp.BasicAuth{
-			Username: "placeholderUsername", // anything except an empty string
-			Password: gc.accessToken,
-		},
-		SingleBranch: true,
-	})
+	pullErr := gc.Pull(migrationBranchName, repo)
+	// "reference not found" also happens if the remote branch hasn't been created yet
 	if pullErr != nil && (pullErr != git.NoErrAlreadyUpToDate && pullErr.Error() != "reference not found") {
 		return nil, pullErr
 	}
@@ -163,26 +148,7 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 	return repo, nil
 }
 
-func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
-	gc.log.Debug("Pushing changes")
-
-	pushErr := gitRepo.Push(
-		&git.PushOptions{
-			Progress:   gc.Writer,
-			RemoteName: "origin",
-			Auth: &gitHttp.BasicAuth{
-				Username: "placeholderUsername", // anything except an empty string
-				Password: gc.accessToken,
-			},
-			RefSpecs: []config.RefSpec{
-				config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewBranchReferenceName(branch)),
-			},
-		},
-	)
-
-	return pushErr
-}
-
+// Get the default branch set for the repo on GitHub
 func (gc *GithubClient) GetDefaultBranch(owner, repo string) (string, error) {
 	var ghRepo *github.Repository
 	searchErr := retry.Do(

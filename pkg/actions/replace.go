@@ -21,7 +21,7 @@ type Replace struct {
 
 const threadCount = 10
 
-var blacklistedDirectories = []string{".git"}
+var blacklistedDirectories = []string{".git", ".idea"}
 
 func NewReplaceAction(dir string, description string, input map[string]string) *Replace {
 	glob, hasSpecifiedGlob := input["glob"]

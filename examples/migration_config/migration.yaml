@@ -9,9 +9,12 @@ search_query: "reference-to-old.url"
 organisation: "example-org"
 branch_name: "example/branch/name"
 
-actions: []
-condition: []
-post_checkout_commands: []
+actions: 
+  - action: replace
+    description: "This is an example of a replacement"
+    input:
+      old: example string to replace
+      new: this string is going to be better
 
-pr_title: ""
+pr_title: "An example PR title"
 pr_body_file: "examples/prbody.md"

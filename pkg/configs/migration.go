@@ -11,9 +11,7 @@ type MigrationConfig struct {
 	SearchQuery  string   `fig:"search_query"`
 	ListOfRepos  []string `fig:"repos"`
 
-	Actions      []actions.Action    `fig:"actions"`
-	Condition    []actions.Condition `fig:"condition"`
-	PostCheckout []string            `fig:"post_checkout_commands"`
+	Actions []actions.Action `fig:"actions"`
 
 	PRTitle    string `fig:"pr_title"`
 	PRBodyFile string `fig:"pr_body_file"`
