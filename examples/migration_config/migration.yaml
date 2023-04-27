@@ -15,6 +15,10 @@ actions:
     input:
       old: example string to replace
       new: this string is going to be better
+  - action: run_command
+    description: "Example command run"
+    input: 
+      command: "echo 'Test' > test.txt"
 
 pr_title: "An example PR title"
 pr_body_file: "examples/prbody.md"
