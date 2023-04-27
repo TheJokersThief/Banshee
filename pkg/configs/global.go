@@ -18,6 +18,7 @@ type GlobalConfig struct {
 
 	Options struct {
 		AssignCodeReviewerIfNoneAssigned bool `fig:"assign_code_reviewer_if_none_assigned"`
+		ShowGitOutput                    bool `flag:"show_git_output"`
 	} `fig:"options"`
 
 	Defaults struct {

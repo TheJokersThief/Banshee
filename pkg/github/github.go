@@ -5,12 +5,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
 	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-github/v52/github"
 	"github.com/sirupsen/logrus"
@@ -20,13 +22,25 @@ import (
 
 type GithubClient struct {
 	Client *github.Client
+	Writer sideband.Progress
 
+	log         *logrus.Entry
 	accessToken string
 	ctx         context.Context
 }
 
-func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context) (*GithubClient, error) {
-	ghClient := &GithubClient{ctx: ctx}
+func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context, log *logrus.Entry) (*GithubClient, error) {
+
+	var showOutput sideband.Progress
+	if globalConf.Options.ShowGitOutput {
+		showOutput = log.Writer()
+	}
+
+	ghClient := &GithubClient{
+		ctx:    ctx,
+		log:    log.WithField("client", "GithubClient"),
+		Writer: showOutput,
+	}
 	if globalConf.Github.UseGithubApp {
 
 		configMissing := (globalConf.Github.AppID == 0 ||
@@ -73,14 +87,21 @@ func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context) (*Git
 	return ghClient, nil
 }
 
-func (gc *GithubClient) ShallowClone(repoFullName, dir, migrationBranchName string) (*git.Repository, error) {
+func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName string) (*git.Repository, error) {
+	defaultBranch, _ := gc.GetDefaultBranch(org, repoName)
+	gitURL := fmt.Sprintf("https://github.com/%s/%s.git", org, repoName)
+	gc.log.Info("Cloning ", gitURL, " [", defaultBranch, "]...")
+
 	repo, err := git.PlainClone(dir, false, &git.CloneOptions{
-		URL: fmt.Sprintf("https://github.com/%s.git", repoFullName),
+		Progress: gc.Writer,
+		URL:      gitURL,
 		Auth: &gitHttp.BasicAuth{
 			Username: "placeholderUsername", // anything except an empty string
 			Password: gc.accessToken,
 		},
-		// Depth: 1 // Unfortunately there's an issue in go-git that means using depth breaks the working tree
+		ReferenceName: plumbing.NewBranchReferenceName(defaultBranch),
+		SingleBranch:  true,
+		// Depth:         1, // Unfortunately there's an issue in go-git that means using depth breaks the working tree
 	})
 
 	if err != nil {
@@ -100,7 +121,7 @@ func (gc *GithubClient) ShallowClone(repoFullName, dir, migrationBranchName stri
 	checkoutErr := wt.Checkout(
 		&git.CheckoutOptions{
 			Hash:   h.Hash(),
-			Branch: plumbing.ReferenceName("refs/heads/" + migrationBranchName),
+			Branch: plumbing.NewBranchReferenceName(migrationBranchName),
 			Create: true,
 			Keep:   true,
 		},
@@ -109,14 +130,31 @@ func (gc *GithubClient) ShallowClone(repoFullName, dir, migrationBranchName stri
 		return nil, checkoutErr
 	}
 
-	logrus.Debug("Pulling ", plumbing.NewBranchReferenceName(migrationBranchName))
+	gc.log.Debug("Fetching references for ", plumbing.NewBranchReferenceName(migrationBranchName))
+	fetchErr := repo.Fetch(&git.FetchOptions{
+		Progress: gc.Writer,
+		Auth: &gitHttp.BasicAuth{
+			Username: "placeholderUsername", // anything except an empty string
+			Password: gc.accessToken,
+		},
+		RefSpecs: []config.RefSpec{
+			config.RefSpec(plumbing.NewBranchReferenceName(migrationBranchName) + ":" + plumbing.NewRemoteReferenceName("origin", migrationBranchName)),
+		},
+	})
+	if fetchErr != nil && !strings.Contains(fetchErr.Error(), "couldn't find remote ref") {
+		return nil, fetchErr
+	}
+
+	gc.log.Debug("Pulling ", plumbing.NewBranchReferenceName(migrationBranchName))
 	pullErr := wt.Pull(&git.PullOptions{
+		Progress:      gc.Writer,
 		RemoteName:    "origin",
 		ReferenceName: plumbing.NewBranchReferenceName(migrationBranchName),
 		Auth: &gitHttp.BasicAuth{
 			Username: "placeholderUsername", // anything except an empty string
 			Password: gc.accessToken,
 		},
+		SingleBranch: true,
 	})
 	if pullErr != nil && (pullErr != git.NoErrAlreadyUpToDate && pullErr.Error() != "reference not found") {
 		return nil, pullErr
@@ -126,10 +164,11 @@ func (gc *GithubClient) ShallowClone(repoFullName, dir, migrationBranchName stri
 }
 
 func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
-	logrus.Debug("Pushing changes")
+	gc.log.Debug("Pushing changes")
 
 	pushErr := gitRepo.Push(
 		&git.PushOptions{
+			Progress:   gc.Writer,
 			RemoteName: "origin",
 			Auth: &gitHttp.BasicAuth{
 				Username: "placeholderUsername", // anything except an empty string

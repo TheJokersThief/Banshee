@@ -26,7 +26,7 @@ func NewBanshee(config configs.GlobalConfig, migConfig configs.MigrationConfig) 
 	log := logrus.WithField("command", "unset")
 
 	ctx := context.Background()
-	client, err := localGH.NewGithubClient(config, ctx)
+	client, err := localGH.NewGithubClient(config, ctx, log)
 	if err != nil {
 		return nil, err
 	}

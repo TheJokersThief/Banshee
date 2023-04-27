@@ -21,15 +21,33 @@ func (b *Banshee) Migrate() error {
 		org = b.GlobalConfig.Defaults.Organisation
 	}
 
-	// query := fmt.Sprintf("org:%s %s", org, b.MigrationConfig.SearchQuery)
-	// repos, err := b.GithubClient.GetMatchingRepos(query)
-	// if err != nil {
-	// 	return err
-	// }
+	if (len(b.MigrationConfig.ListOfRepos) > 0) == (b.MigrationConfig.SearchQuery != "") {
+		return fmt.Errorf("You may only use one of search_query or repos")
+	}
 
-	repos := []string{fmt.Sprintf("%s/containers", org)}
+	var repos []string
+	if len(b.MigrationConfig.ListOfRepos) > 0 {
+		repos = b.MigrationConfig.ListOfRepos
+	}
+
+	if b.MigrationConfig.SearchQuery != "" {
+		var searchQueryErr error
+		var query string
+
+		if !strings.Contains(b.MigrationConfig.SearchQuery, "org:") {
+			query = fmt.Sprintf("org:%s %s", org, b.MigrationConfig.SearchQuery)
+		}
+		repos, searchQueryErr = b.GithubClient.GetMatchingRepos(query)
+		if searchQueryErr != nil {
+			return searchQueryErr
+		}
+	}
 
 	for _, repo := range repos {
+		if !strings.Contains(repo, "/") {
+			repo = fmt.Sprintf("%s/%s", org, repo)
+		}
+
 		_, repoErr := b.handleRepo(b.log.WithField("repo", repo), org, repo)
 		if repoErr != nil {
 			return repoErr
@@ -135,7 +153,7 @@ func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, *git.R
 	}
 	logrus.Debug("Created ", dir)
 
-	gitRepo, cloneErr := b.GithubClient.ShallowClone(repo, dir, b.MigrationConfig.BranchName)
+	gitRepo, cloneErr := b.GithubClient.ShallowClone(org, repoNameOnly, dir, b.MigrationConfig.BranchName)
 	if cloneErr != nil {
 		return "", nil, "", fmt.Errorf("clone error: %s", cloneErr)
 	}

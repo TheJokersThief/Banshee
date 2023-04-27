@@ -1,4 +1,11 @@
+# You can only choose one of:
+#   - search_query (A GitHub code search query for matching repos)
+#   - repos (A static list of repos)
 search_query: "reference-to-old.url"
+# repos:
+#   - example-org/example-repo
+#   - no-org-repo
+
 organisation: "example-org"
 branch_name: "example/branch/name"
 
