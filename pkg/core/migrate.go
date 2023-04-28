@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/google/go-github/v52/github"
 	"github.com/sirupsen/logrus"
 	"github.com/thejokersthief/banshee/pkg/actions"
 )
@@ -81,7 +82,6 @@ func (b *Banshee) getCacheRepoPath(org, repo string) string {
 
 // Handle the migration for a repo
 func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error) {
-	madeChanges := false
 	repoNameOnly := strings.Replace(repo, org+"/", "", -1)
 
 	log.Info("Processing ", repo)
@@ -96,6 +96,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 		defer os.RemoveAll(dir)
 	}
 
+	changelog := []string{}
 	for _, action := range b.MigrationConfig.Actions {
 		actionErr := actions.RunAction(log, action.Action, dir, action.Description, action.Input)
 		if actionErr != nil {
@@ -107,9 +108,9 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 		log.Debug("Checking if dirty...")
 		// check if git dirty
 		if !state.IsClean() {
+			changelog = append(changelog, "* "+action.Description)
 			log.Debug("Is dirty, committing changes: ", action.Description)
 			// if dirty, commit with action.Description as message
-			madeChanges = true
 			addErr := tree.AddGlob("./")
 			if addErr != nil {
 				return "", addErr
@@ -129,44 +130,68 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 		}
 	}
 
-	if madeChanges {
-		// If we made at least one change, push to the remote
-		htmlURL, err := b.pushChanges(gitRepo, org, repoNameOnly, defaultBranch)
-		if err != nil {
-			return "", err
-		}
-
-		if htmlURL == "" {
-			log.Info("PR already exists, not creating one")
-			return "", nil
-		}
-
-		log.Info("Created PR for ", repo, ": ", htmlURL)
-		return htmlURL, nil
+	htmlURL, err := b.pushChanges(changelog, gitRepo, org, repoNameOnly, defaultBranch)
+	if err != nil {
+		return "", err
 	}
 
-	return "", nil
+	log.Info("PR for ", repo, ": ", htmlURL)
+	return htmlURL, nil
 }
 
 // Push changes to aGitHub nd create a Pull Request
-func (b *Banshee) pushChanges(gitRepo *git.Repository, org, repoName, defaultBranch string) (string, error) {
+func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, repoName, defaultBranch string) (string, error) {
 	pushError := b.GithubClient.Push(b.MigrationConfig.BranchName, gitRepo)
 	if pushError != nil {
 		return "", fmt.Errorf("push error: %s", pushError)
 	}
 
-	bodyText, prFileErr := os.ReadFile(b.MigrationConfig.PRBodyFile)
-	if prFileErr != nil {
-		return "", prFileErr
+	pr, prErr := b.GithubClient.FindPullRequest(org, repoName, defaultBranch, b.MigrationConfig.BranchName)
+	if prErr != nil {
+		return "", prErr
+	}
+
+	prBody, bodyErr := b.formatChangelog(pr, changelog)
+	if bodyErr != nil {
+		return "", bodyErr
+	}
+
+	if pr != nil {
+		editErr := b.GithubClient.UpdatePullRequest(pr, org, repoName, prBody)
+		if editErr != nil {
+			return "", editErr
+		}
+		return pr.GetHTMLURL(), nil
 	}
 
 	htmlURL, prErr := b.GithubClient.CreatePullRequest(
-		org, repoName, b.MigrationConfig.PRTitle, string(bodyText), defaultBranch, b.MigrationConfig.BranchName)
+		org, repoName, b.MigrationConfig.PRTitle, prBody, defaultBranch, b.MigrationConfig.BranchName)
 	if prErr != nil {
 		return "", prErr
 	}
 
 	return htmlURL, nil
+}
+
+func (b *Banshee) formatChangelog(pr *github.PullRequest, changelog []string) (string, error) {
+	bodyText, prFileErr := os.ReadFile(b.MigrationConfig.PRBodyFile)
+	if prFileErr != nil {
+		return "", prFileErr
+	}
+
+	if pr != nil {
+		bodyText = []byte(*pr.Body)
+	}
+
+	changelogText := strings.Join(changelog, "\n")
+	prBody := strings.Replace(
+		string(bodyText),
+		"<!-- changelog -->",
+		fmt.Sprintf("<!-- changelog -->\n%s", changelogText),
+		-1,
+	)
+
+	return prBody, nil
 }
 
 // Clone a new repo, and fetch info about its default branch

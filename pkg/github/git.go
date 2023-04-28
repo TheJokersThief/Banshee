@@ -92,10 +92,13 @@ func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
 				Password: gc.accessToken,
 			},
 			RefSpecs: []config.RefSpec{
-				config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewBranchReferenceName(branch)),
+				config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewRemoteReferenceName(defaultRemote, branch)),
 			},
 		},
 	)
 
-	return pushErr
+	if pushErr != nil && pushErr != git.NoErrAlreadyUpToDate {
+		return pushErr
+	}
+	return nil
 }

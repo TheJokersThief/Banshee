@@ -2,8 +2,28 @@
 package github
 
 import (
+	"fmt"
+
 	"github.com/google/go-github/v52/github"
 )
+
+func (gc *GithubClient) FindPullRequest(org, repo, baseBranch, headBranch string) (*github.PullRequest, error) {
+	opts := &github.PullRequestListOptions{
+		State: "open",
+		Base:  baseBranch,
+		Head:  fmt.Sprintf("%s:%s", org, headBranch),
+	}
+	prs, _, err := gc.Client.PullRequests.List(gc.ctx, org, repo, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(prs) > 0 {
+		return prs[0], nil
+	}
+
+	return nil, nil
+}
 
 func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, merge_branch string) (string, error) {
 	asDraft := true
@@ -32,11 +52,20 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 	return pr.GetHTMLURL(), nil
 }
 
+func (gc *GithubClient) UpdatePullRequest(pr *github.PullRequest, org, repo, body string) error {
+	pr.Body = &body
+	pr, _, err := gc.Client.PullRequests.Edit(gc.ctx, org, repo, *pr.Number, pr)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (gc *GithubClient) AssignDefaultReviewer(org, repo string, prNumber int) error {
 
 	listOpts := &github.ListOptions{}
-	prService := github.PullRequestsService{}
-	reviewers, _, err := prService.ListReviewers(gc.ctx, org, repo, prNumber, listOpts)
+	reviewers, _, err := gc.Client.PullRequests.ListReviewers(gc.ctx, org, repo, prNumber, listOpts)
 	if err != nil {
 		return err
 	}
@@ -47,7 +76,7 @@ func (gc *GithubClient) AssignDefaultReviewer(org, repo string, prNumber int) er
 			TeamReviewers: []string{gc.GlobalConfig.Defaults.CodeReviewer},
 		}
 
-		_, _, reviewerErr := prService.RequestReviewers(gc.ctx, org, repo, prNumber, reviewRequest)
+		_, _, reviewerErr := gc.Client.PullRequests.RequestReviewers(gc.ctx, org, repo, prNumber, reviewRequest)
 		if reviewerErr != nil {
 			return reviewerErr
 		}
