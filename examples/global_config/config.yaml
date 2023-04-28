@@ -8,14 +8,22 @@ github:
   app_private_key_filepath: ""
 
 options:
+  # Assign a team to review code if no reviewers are already assigned by a CODEOWNERS file
   assign_code_reviewer_if_none_assigned: false
-  show_git_output: false # Show the output from all git actions (e.g. clones, pulls and fetches)
-  cache_repos: 
-    enabled: false # If enabled, will store all downloaded repos permanently
-    directory: "repos.cache"
+  # Show the output from all git actions (e.g. clones, pulls and fetches)
+  show_git_output: false
+  cache_repos:
+    # If enabled, will store all downloaded repos permanently
+    enabled: false
+    # Location for storing the repos cache
+    directory: "repos.cache" 
 
 defaults:
+  # The author and commit email
   git_email: "no-reply@example.com"
+  # The author and commit name
   git_name: "Example User"
+  # GitHub organisation slug
   organisation: "github"
-  code_reviewer: "no-one" # team slug
+  # Team slug to be added as a reviewer
+  code_reviewer: "no-one"

@@ -24,7 +24,7 @@ var CLI struct {
 	Version struct{} `cmd:"" help:"Print banshee CLI version"`
 	Migrate struct {
 		MigrationFile string `arg:"" name:"path" help:"Path to migration file." type:"path"`
-	} `cmd:"" help:"Run migration"`
+	} `cmd:"" help:"Run a migration"`
 
 	ConfigFile string `name:"config" short:"c" help:"Path to global CLI config" type:"path" default:"./config.yaml"`
 }
