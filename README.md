@@ -43,9 +43,8 @@ Run "main <command> --help" for more information on a command.
 ### Running a migration
 
 ```bash
-banshee migrate \
-    -c examples/global_config/config.yaml \
-    examples/migration_config/migration.yaml
+banshee migrate examples/migration_config/migration.yaml \
+    --config examples/global_config/config.yaml
 ```
 
 

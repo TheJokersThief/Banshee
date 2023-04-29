@@ -2,6 +2,7 @@
 package github
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/google/go-github/v52/github"
@@ -39,14 +40,18 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 	pr, _, err := gc.Client.PullRequests.Create(gc.ctx, org, repo, newPR)
 
 	if err != nil {
-		ghErr := err.(*github.ErrorResponse)
-		if ghErr.Message != "Validation Failed" {
+		var errResponse *github.ErrorResponse
+		ghErr := errors.As(err, &errResponse)
+		if ghErr && errResponse.Message != "Validation Failed" {
 			return "", err
 		}
 	}
 
 	if gc.GlobalConfig.Options.AssignCodeReviewerIfNoneAssigned {
-		gc.AssignDefaultReviewer(org, repo, *pr.Number)
+		assignmentErr := gc.AssignDefaultReviewer(org, repo, *pr.Number)
+		if assignmentErr != nil {
+			return "", assignmentErr
+		}
 	}
 
 	return pr.GetHTMLURL(), nil
@@ -54,7 +59,7 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 
 func (gc *GithubClient) UpdatePullRequest(pr *github.PullRequest, org, repo, body string) error {
 	pr.Body = &body
-	pr, _, err := gc.Client.PullRequests.Edit(gc.ctx, org, repo, *pr.Number, pr)
+	_, _, err := gc.Client.PullRequests.Edit(gc.ctx, org, repo, *pr.Number, pr)
 	if err != nil {
 		return err
 	}

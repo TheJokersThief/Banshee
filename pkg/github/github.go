@@ -112,11 +112,11 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 	gitURL := fmt.Sprintf("https://github.com/%s/%s.git", org, repoName)
 
 	var repo *git.Repository
-	var err error
+	var plainOpenErr error
 	if _, err := os.Stat(dir + "/.git"); errors.Is(err, os.ErrNotExist) {
 		// If the directory doesn't exist, clone the repo into it
 		gc.log.Info("Cloning ", gitURL, " [", defaultBranch, "]...")
-		repo, err = git.PlainClone(dir, false, &git.CloneOptions{
+		repo, plainOpenErr = git.PlainClone(dir, false, &git.CloneOptions{
 			Progress: gc.Writer,
 			URL:      gitURL,
 			Auth: &gitHttp.BasicAuth{
@@ -129,7 +129,7 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 		})
 	} else {
 		gc.log.Info("Opening ", dir, " [", defaultBranch, "]...")
-		repo, err = git.PlainOpen(dir)
+		repo, plainOpenErr = git.PlainOpen(dir)
 
 		// Checkout the default branch
 		checkoutErr := gc.Checkout(defaultBranch, repo, false)
@@ -139,13 +139,13 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 
 		// Pull any changes to the default branch since we last cloned
 		pullErr := gc.Pull(defaultBranch, repo)
-		if pullErr != nil && (pullErr != git.NoErrAlreadyUpToDate) {
+		if pullErr != nil && (!errors.Is(pullErr, git.NoErrAlreadyUpToDate)) {
 			return nil, pullErr
 		}
 	}
 
-	if err != nil {
-		return nil, err
+	if plainOpenErr != nil {
+		return nil, plainOpenErr
 	}
 
 	checkoutErr := gc.Checkout(migrationBranchName, repo, true)

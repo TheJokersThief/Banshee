@@ -67,6 +67,7 @@ func (b *Banshee) Migrate() error {
 
 func (b *Banshee) createCacheRepo(log *logrus.Entry, path string) error {
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		log.Debug("Creating cache directory ", path)
 		err := os.Mkdir(path, os.ModePerm)
 		if err != nil {
 			return err
@@ -82,7 +83,7 @@ func (b *Banshee) getCacheRepoPath(org, repo string) string {
 
 // Handle the migration for a repo
 func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error) {
-	repoNameOnly := strings.Replace(repo, org+"/", "", -1)
+	repoNameOnly := strings.ReplaceAll(repo, org+"/", "")
 
 	log.Info("Processing ", repo)
 
@@ -143,7 +144,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, repoName, defaultBranch string) (string, error) {
 	pushError := b.GithubClient.Push(b.MigrationConfig.BranchName, gitRepo)
 	if pushError != nil {
-		return "", fmt.Errorf("push error: %s", pushError)
+		return "", fmt.Errorf("push error: %w", pushError)
 	}
 
 	pr, prErr := b.GithubClient.FindPullRequest(org, repoName, defaultBranch, b.MigrationConfig.BranchName)
@@ -184,11 +185,10 @@ func (b *Banshee) formatChangelog(pr *github.PullRequest, changelog []string) (s
 	}
 
 	changelogText := strings.Join(changelog, "\n")
-	prBody := strings.Replace(
+	prBody := strings.ReplaceAll(
 		string(bodyText),
 		"<!-- changelog -->",
 		fmt.Sprintf("<!-- changelog -->\n%s", changelogText),
-		-1,
 	)
 
 	return prBody, nil
@@ -196,7 +196,7 @@ func (b *Banshee) formatChangelog(pr *github.PullRequest, changelog []string) (s
 
 // Clone a new repo, and fetch info about its default branch
 func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, *git.Repository, string, error) {
-	repoNameOnly := strings.Replace(repo, org+"/", "", -1)
+	repoNameOnly := strings.ReplaceAll(repo, org+"/", "")
 
 	var dir string
 	var mkDirErr error
@@ -204,7 +204,7 @@ func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, *git.R
 		dir = b.getCacheRepoPath(org, repoNameOnly)
 		mkDirErr = b.createCacheRepo(log, dir)
 	} else {
-		dir, mkDirErr = os.MkdirTemp(os.TempDir(), strings.Replace(repo, "/", "-", -1))
+		dir, mkDirErr = os.MkdirTemp(os.TempDir(), strings.ReplaceAll(repo, "/", "-"))
 	}
 	if mkDirErr != nil {
 		return "", nil, "", mkDirErr
@@ -214,7 +214,7 @@ func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, *git.R
 
 	gitRepo, cloneErr := b.GithubClient.ShallowClone(org, repoNameOnly, dir, b.MigrationConfig.BranchName)
 	if cloneErr != nil {
-		return "", nil, "", fmt.Errorf("clone error: %s", cloneErr)
+		return "", nil, "", fmt.Errorf("clone error: %w", cloneErr)
 	}
 
 	defaultBranch, defaultBranchErr := b.GithubClient.GetDefaultBranch(org, repoNameOnly)

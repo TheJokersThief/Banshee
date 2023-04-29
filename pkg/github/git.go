@@ -1,6 +1,7 @@
 package github
 
 import (
+	"errors"
 	"strings"
 
 	"github.com/go-git/go-git/v5"
@@ -47,7 +48,7 @@ func (gc *GithubClient) Fetch(branch string, gitRepo *git.Repository) error {
 		},
 	})
 
-	if fetchErr != nil && (fetchErr != git.NoErrAlreadyUpToDate && !strings.Contains(fetchErr.Error(), "couldn't find remote ref")) {
+	if fetchErr != nil && (!errors.Is(fetchErr, git.NoErrAlreadyUpToDate) && !strings.Contains(fetchErr.Error(), "couldn't find remote ref")) {
 		return fetchErr
 	}
 	return nil
@@ -72,7 +73,7 @@ func (gc *GithubClient) Pull(branch string, gitRepo *git.Repository) error {
 		SingleBranch: true,
 	})
 
-	if pullErr != nil && (pullErr != git.NoErrAlreadyUpToDate && pullErr.Error() != "reference not found") {
+	if pullErr != nil && (!errors.Is(pullErr, git.NoErrAlreadyUpToDate) && pullErr.Error() != "reference not found") {
 		return pullErr
 	}
 
@@ -97,7 +98,7 @@ func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
 		},
 	)
 
-	if pushErr != nil && pushErr != git.NoErrAlreadyUpToDate {
+	if pushErr != nil && !errors.Is(pushErr, git.NoErrAlreadyUpToDate) {
 		return pushErr
 	}
 	return nil

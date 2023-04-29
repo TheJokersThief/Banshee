@@ -60,7 +60,7 @@ func (r *Replace) Run(log *logrus.Entry) error {
 		finalError := fmt.Errorf("")
 		for i := 0; i < len(errors); i++ {
 			fileErr := <-errors
-			finalError = fmt.Errorf("%s\n%s", finalError, fileErr)
+			finalError = fmt.Errorf("%w\n%w", finalError, fileErr)
 		}
 		return finalError
 	}
@@ -102,7 +102,6 @@ func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, e
 			errors <- err
 			continue
 		}
-		defer f.Close()
 
 		// create temp file
 		tmp, err := os.CreateTemp(os.TempDir(), "replace-*")
@@ -110,7 +109,6 @@ func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, e
 			errors <- err
 			continue
 		}
-		defer tmp.Close()
 
 		reader := replace.Chain(f,
 			replace.String(r.OldString, r.NewString),

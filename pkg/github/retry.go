@@ -1,6 +1,7 @@
 package github
 
 import (
+	"errors"
 	"time"
 
 	"github.com/avast/retry-go/v4"
@@ -20,8 +21,11 @@ var (
 
 // Checks if the error should be retried or not
 func checkIfRecoverable(err error) error {
-	_, isRateLimit := err.(*github.RateLimitError)
-	_, isAbuseLimit := err.(*github.AbuseRateLimitError)
+	var rateLimitErr *github.RateLimitError
+	isRateLimit := errors.As(err, &rateLimitErr)
+
+	var abuseErr *github.AbuseRateLimitError
+	isAbuseLimit := errors.As(err, &abuseErr)
 
 	// If it is one of these errors, it can be retried
 	if isRateLimit || isAbuseLimit {
