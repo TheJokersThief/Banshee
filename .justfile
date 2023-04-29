@@ -14,7 +14,7 @@ build_darwin_arm version="development": (_build_generic "darwin" "arm64" version
 _build_generic os arch version="development":
     GOOS={{ os }} GOARCH={{ arch }} CGO_ENABLED=0 \
         go build \
-        --ldflags '-X {{ GITHUB_ADDR }}/cmd/{{ PROJECT_NAME }}/main.VersionName={{ version }} -X {{ GITHUB_ADDR }}/cmd/{{ PROJECT_NAME }}/main.GitCommitSHA={{ COMMIT_SHA }}' \
+        --ldflags '-X main.VersionName={{ version }} -X main.GitCommitSHA={{ COMMIT_SHA }}' \
         -o dist/bin/{{ os }}/{{ arch }}/{{ PROJECT_NAME }} ./cmd/{{ PROJECT_NAME }}
 
 

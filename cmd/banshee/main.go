@@ -35,6 +35,11 @@ var CLI struct {
 func main() {
 	ctx := kong.Parse(&CLI)
 
+	if ctx.Command() == "version" {
+		fmt.Println("version:", Version, "| commit:", GitCommitSHA)
+		os.Exit(0)
+	}
+
 	var globalConfig configs.GlobalConfig
 	globalConfig = parseConfig(globalConfig, CLI.ConfigFile, "APP")
 
@@ -47,8 +52,6 @@ func main() {
 
 		migrationErr := banshee.Migrate()
 		handleErr(migrationErr)
-	case "version":
-		fmt.Println("version:", Version, "| commit:", GitCommitSHA)
 	default:
 		printFatalError(fmt.Errorf(ctx.Command()))
 	}
