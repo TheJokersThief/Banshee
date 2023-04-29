@@ -12,6 +12,9 @@ import (
 	"github.com/thejokersthief/banshee/pkg/core"
 )
 
+var Version = "development"
+var GitCommitSHA = "XXXXXX"
+
 var FatalErrorStyling = lipgloss.NewStyle().
 	Bold(true).
 	Foreground(lipgloss.Color("#CD4B41")).
@@ -45,7 +48,7 @@ func main() {
 		migrationErr := banshee.Migrate()
 		handleErr(migrationErr)
 	case "version":
-		fmt.Println("versioning")
+		fmt.Println("version:", Version, "| commit:", GitCommitSHA)
 	default:
 		printFatalError(fmt.Errorf(ctx.Command()))
 	}
