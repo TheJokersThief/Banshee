@@ -11,7 +11,7 @@
 
 Below is high level flow diagram of how a migration works.
 
-<img src="../images/migration-flow.png" style="max-width: 400px; display: block; margin: 0 auto;"/>
+<img src="../images/migration-flow.png" />
 
 # Actions
 
