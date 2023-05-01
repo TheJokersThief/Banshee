@@ -34,12 +34,13 @@ pipeline.new(
 
                 workflows.job(
                     'release',
-                    executor='gh/default',
+                    image='cimg/base:stable',
                     requires=['build'],
                     filters=tag_filter,
                     working_directory='/banshee',
                     steps=[
                         steps.attach_workspace('/banshee/dist'),
+                        'gh/setup',
                         steps.run('gh release create ${CIRCLE_TAG}, --generate-notes --verify-tag', name='Create a new release')
                     ],
                 )
