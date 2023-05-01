@@ -22,8 +22,8 @@ publish:
     @echo ""
     @read -r -p "What version would you like to publish? " VERSION; \
     just build_all "${VERSION}"; \
-    echo git tag -a "${VERSION}" -m "${VERSION}"
-    echo git push --tags
+    git tag -a "${VERSION}" -m "${VERSION}"
+    git push --tags
 
 # Run a migration using the test config migration.test.yaml
 example_migration: _check_test_conf_exists
