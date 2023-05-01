@@ -25,7 +25,7 @@ pipeline.new(
                         'go/load-cache',
                         'go/mod-download',
                         'go/save-cache',
-                        steps.run("curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ./just", name='Download just'),
+                        steps.run("curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ./", name='Download just'),
                         steps.run('bash ./just build_all ${CIRCLE_TAG}', name='Build binary for all platforms'),
                         steps.store_artifacts('/home/circleci/banshee/dist/'),
                         steps.persist_to_workspace(root='/home/circleci/banshee', paths=['dist']),
