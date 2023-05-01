@@ -19,7 +19,7 @@ pipeline.new(
                     'build',
                     executor={ name:'go/default', tag: '1.19' },
                     filters=tag_filter,
-                    working_directory='/banshee',
+                    working_directory='/home/circleci/banshee',
                     steps=[
                         steps.checkout(),
                         'go/load-cache',
@@ -27,8 +27,8 @@ pipeline.new(
                         'go/save-cache',
                         steps.run("curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to ./just", name='Download just'),
                         steps.run('bash ./just build_all ${CIRCLE_TAG}', name='Build binary for all platforms'),
-                        steps.store_artifacts('/banshee/dist/'),
-                        steps.persist_to_workspace(root='/banshee', paths=['dist']),
+                        steps.store_artifacts('/home/circleci/banshee/dist/'),
+                        steps.persist_to_workspace(root='/home/circleci/banshee', paths=['dist']),
                     ],
                 ),
 
@@ -37,9 +37,9 @@ pipeline.new(
                     image='cimg/base:stable',
                     requires=['build'],
                     filters=tag_filter,
-                    working_directory='/banshee',
+                    working_directory='/home/circleci/banshee',
                     steps=[
-                        steps.attach_workspace('/banshee/dist'),
+                        steps.attach_workspace('/home/circleci/banshee/dist'),
                         'gh/setup',
                         steps.run('gh release create ${CIRCLE_TAG}, --generate-notes --verify-tag', name='Create a new release')
                     ],
