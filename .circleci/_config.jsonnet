@@ -39,9 +39,10 @@ pipeline.new(
                     filters=tag_filter,
                     working_directory='/home/circleci/banshee',
                     steps=[
+                        steps.checkout(),
                         steps.attach_workspace('/home/circleci/banshee/dist'),
                         { 'gh/setup': { version: '2.28.0' } },
-                        steps.run('gh release create ${CIRCLE_TAG}, --generate-notes --verify-tag', name='Create a new release')
+                        steps.run('gh release create dev${CIRCLE_TAG}, --generate-notes --verify-tag', name='Create a new release')
                     ],
                 )
             ],
