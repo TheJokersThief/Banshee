@@ -6,7 +6,7 @@ local steps = dsl.steps;
 local workflows = dsl.workflows;
 local orbs = dsl.orbs;
 
-local tag_filter = workflows.filter_tags(only=['/v.*/']);
+local tag_filter = workflows.filter_tags(only=['/v.*/']) + workflows.filter_branches(ignore=['/.*/']);
 
 
 pipeline.new(
@@ -42,7 +42,7 @@ pipeline.new(
                         steps.checkout(),
                         steps.attach_workspace('/home/circleci/banshee/dist'),
                         { 'gh/setup': { version: '2.28.0' } },
-                        steps.run('gh release create dev${CIRCLE_TAG}, --generate-notes', name='Create a new release')
+                        steps.run('gh release create ${CIRCLE_TAG}, --generate-notes --verify-tag', name='Create a new release')
                     ],
                 )
             ],
