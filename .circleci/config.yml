@@ -1,0 +1,20 @@
+version: 2.1
+setup: true
+orbs:
+  continuation: circleci/continuation@0.1.0
+jobs:
+  generate-config:
+    docker:
+      - image: thejokersthief/cartographer-dsl:latest
+    steps:
+      - checkout
+      - run:
+          name: Generate Pipeline generated_config.yml file
+          command: cartographer-dsl --file .circleci/_config.jsonnet > generated_config.yml
+      - continuation/continue:
+          parameters: '{}'
+          configuration_path: generated_config.yml
+workflows:
+  setup-workflow:
+    jobs:
+      - generate-config
