@@ -21,7 +21,6 @@ publish:
     @echo "Commit: $(git log --oneline -1 `git describe --tags --abbrev=0`)"
     @echo ""
     @read -r -p "What version would you like to publish? " VERSION; \
-    just build_all "${VERSION}"; \
     git tag -a "${VERSION}" -m "${VERSION}"
     git push --tags
 
