@@ -56,3 +56,7 @@ directory. I try to keep the configs well commented to explain all the features.
 CLI as a whole. Things like auth and defaults.
 * [Migration config](examples/migration_config/migration.yaml): The configuration
 for an individual migration. 
+
+# Documentation
+
+Have a look in [docs/](docs/) for further information.
