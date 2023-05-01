@@ -17,7 +17,7 @@ pipeline.new(
             jobs=[
                 workflows.job(
                     'build',
-                    executor='go/default',
+                    executor={ name:'go/default', tag: '1.19' },
                     filters=tag_filter,
                     working_directory='/banshee',
                     steps=[
