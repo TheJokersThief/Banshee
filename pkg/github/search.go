@@ -8,7 +8,7 @@ import (
 
 func (gc *GithubClient) GetAllRepos(owner string) ([]string, error) {
 	repos := []string{}
-	opt := &github.RepositoryListOptions{Type: "owner", Sort: "updated", Direction: "desc"}
+	opt := &github.RepositoryListOptions{Type: "owner", Sort: "created", Direction: "asc"}
 
 	for {
 
