@@ -1,7 +1,9 @@
 # You can only choose one of:
 #   - search_query (A GitHub code search query for matching repos)
+#   - all_repos_in_org (Use every repo in the organisation)
 #   - repos (A static list of repos)
 search_query: "reference-to-old.url"
+# all_repos_in_org: true
 # repos:
 #   - example-org/example-repo
 #   - no-org-repo

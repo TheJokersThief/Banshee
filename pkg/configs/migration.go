@@ -6,10 +6,11 @@ import (
 )
 
 type MigrationConfig struct {
-	BranchName   string   `fig:"branch_name"`
-	Organisation string   `fig:"organisation"`
-	SearchQuery  string   `fig:"search_query"`
-	ListOfRepos  []string `fig:"repos"`
+	BranchName    string   `fig:"branch_name"`
+	Organisation  string   `fig:"organisation"`
+	SearchQuery   string   `fig:"search_query"`
+	ListOfRepos   []string `fig:"repos"`
+	AllReposInOrg bool     `fig:"all_repos_in_org"`
 
 	Actions []actions.Action `fig:"actions"`
 

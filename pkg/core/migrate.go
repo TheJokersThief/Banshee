@@ -14,45 +14,26 @@ import (
 	"github.com/thejokersthief/banshee/pkg/actions"
 )
 
+// Perform a migration
 func (b *Banshee) Migrate() error {
 
 	b.log = logrus.WithField("command", "migrate")
 
-	org := b.MigrationConfig.Organisation
-	if b.MigrationConfig.Organisation == "" {
-		org = b.GlobalConfig.Defaults.Organisation
+	if validationErr := b.validateMigrateCommand(); validationErr != nil {
+		return validationErr
 	}
 
-	if (len(b.MigrationConfig.ListOfRepos) > 0) == (b.MigrationConfig.SearchQuery != "") {
-		return fmt.Errorf("You may only use one of search_query or repos")
+	if cacheErr := b.CreateCacheRepoIfEnabled(); cacheErr != nil {
+		return cacheErr
 	}
 
-	if b.GlobalConfig.Options.CacheRepos.Enabled {
-		cacheErr := b.createCacheRepo(b.log, b.GlobalConfig.Options.CacheRepos.Directory)
-		if cacheErr != nil {
-			return cacheErr
-		}
-	}
-
-	var repos []string
-	if len(b.MigrationConfig.ListOfRepos) > 0 {
-		repos = b.MigrationConfig.ListOfRepos
-	}
-
-	if b.MigrationConfig.SearchQuery != "" {
-		var searchQueryErr error
-		var query string
-
-		if !strings.Contains(b.MigrationConfig.SearchQuery, "org:") {
-			query = fmt.Sprintf("org:%s %s", org, b.MigrationConfig.SearchQuery)
-		}
-		repos, searchQueryErr = b.GithubClient.GetMatchingRepos(query)
-		if searchQueryErr != nil {
-			return searchQueryErr
-		}
+	org, repos, optionsErr := b.migrationOptions()
+	if optionsErr != nil {
+		return optionsErr
 	}
 
 	for _, repo := range repos {
+		// Check if repo is of the form <org>/<repo>
 		if !strings.Contains(repo, "/") {
 			repo = fmt.Sprintf("%s/%s", org, repo)
 		}
@@ -63,6 +44,41 @@ func (b *Banshee) Migrate() error {
 		}
 	}
 	return nil
+}
+
+// Validate migration command options
+func (b *Banshee) validateMigrateCommand() error {
+	if oneChoiceErr := b.OnlyOneRepoChoice(); oneChoiceErr != nil {
+		return oneChoiceErr
+	}
+
+	return nil
+}
+
+// Handle setting defaults for the migration options
+func (b *Banshee) migrationOptions() (string, []string, error) {
+	org := b.MigrationConfig.Organisation
+	if b.MigrationConfig.Organisation == "" {
+		org = b.GlobalConfig.Defaults.Organisation
+		b.log.Debug("No organisation chosen, using ", org)
+	}
+
+	if len(b.MigrationConfig.ListOfRepos) > 0 {
+		return org, b.MigrationConfig.ListOfRepos, nil
+	}
+
+	if b.MigrationConfig.SearchQuery != "" {
+		query := b.MigrationConfig.SearchQuery
+		if !strings.Contains(b.MigrationConfig.SearchQuery, "org:") {
+			query = fmt.Sprintf("org:%s %s", org, b.MigrationConfig.SearchQuery)
+		}
+
+		if repos, searchQueryErr := b.GithubClient.GetMatchingRepos(query); searchQueryErr != nil {
+			return org, repos, searchQueryErr
+		}
+	}
+
+	return org, []string{}, nil
 }
 
 func (b *Banshee) createCacheRepo(log *logrus.Entry, path string) error {
