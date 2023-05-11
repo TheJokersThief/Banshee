@@ -8,6 +8,8 @@ github:
   app_private_key_filepath: ""
 
 options:
+  # Controls the verbosity of log output
+  log_level: info
   # Assign a team to review code if no reviewers are already assigned by a CODEOWNERS file
   assign_code_reviewer_if_none_assigned: false
   # Show the output from all git actions (e.g. clones, pulls and fetches)

@@ -24,8 +24,9 @@ type GithubConfig struct {
 }
 
 type OptionsConfig struct {
-	AssignCodeReviewerIfNoneAssigned bool `fig:"assign_code_reviewer_if_none_assigned"`
-	ShowGitOutput                    bool `fig:"show_git_output"`
+	LogLevel                         string `fig:"log_level"`
+	AssignCodeReviewerIfNoneAssigned bool   `fig:"assign_code_reviewer_if_none_assigned"`
+	ShowGitOutput                    bool   `fig:"show_git_output"`
 
 	CacheRepos struct {
 		Enabled   bool   `fig:"enabled"`
