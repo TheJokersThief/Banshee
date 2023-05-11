@@ -24,7 +24,7 @@ type GithubConfig struct {
 }
 
 type OptionsConfig struct {
-	LogLevel                         string `fig:"log_level"`
+	LogLevel                         string `fig:"log_level" default:"info"`
 	AssignCodeReviewerIfNoneAssigned bool   `fig:"assign_code_reviewer_if_none_assigned"`
 	ShowGitOutput                    bool   `fig:"show_git_output"`
 

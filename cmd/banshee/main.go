@@ -29,6 +29,12 @@ var CLI struct {
 		MigrationFile string `arg:"" name:"path" help:"Path to migration file." type:"path"`
 	} `cmd:"" help:"Run a migration"`
 
+	List struct {
+		MigrationFile string `arg:"" name:"path" help:"Path to migration file." type:"path"`
+		State         string `name:"state" help:"State of PRs to show (open, closed, all)" default:"all"`
+		Format        string `name:"format" help:"Format for output (json, summary)" default:"summary"`
+	} `cmd:"" help:"List PRs associated with a migration"`
+
 	ConfigFile string `name:"config" short:"c" help:"Path to global CLI config" type:"path" default:"./config.yaml"`
 }
 
@@ -45,13 +51,13 @@ func main() {
 
 	switch ctx.Command() {
 	case "migrate <path>":
-		var migrationConfig configs.MigrationConfig
-		migrationConfig = parseConfig(migrationConfig, CLI.Migrate.MigrationFile, "APP")
-		banshee, initErr := core.NewBanshee(globalConfig, migrationConfig)
-		handleErr(initErr)
-
+		banshee := createBanshee(globalConfig, CLI.Migrate.MigrationFile)
 		migrationErr := banshee.Migrate()
 		handleErr(migrationErr)
+	case "list <path>":
+		banshee := createBanshee(globalConfig, CLI.List.MigrationFile)
+		listErr := banshee.List(CLI.List.State, CLI.List.Format)
+		handleErr(listErr)
 	default:
 		printFatalError(fmt.Errorf(ctx.Command()))
 	}
@@ -66,6 +72,15 @@ func parseConfig[C configs.Configs](conf C, file string, envKey string) C {
 		printFatalError(configParseError)
 	}
 	return conf
+}
+
+func createBanshee(globalConfig configs.GlobalConfig, migrationConfigPath string) *core.Banshee {
+	var migrationConfig configs.MigrationConfig
+	migrationConfig = parseConfig(migrationConfig, migrationConfigPath, "APP")
+	banshee, initErr := core.NewBanshee(globalConfig, migrationConfig)
+	handleErr(initErr)
+
+	return banshee
 }
 
 // Break down the file pieces into the directory and filename

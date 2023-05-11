@@ -55,13 +55,19 @@ func (b *Banshee) validateMigrateCommand() error {
 	return nil
 }
 
-// Handle setting defaults for the migration options
-func (b *Banshee) migrationOptions() (string, []string, error) {
+func (b *Banshee) getOrgName() string {
 	org := b.MigrationConfig.Organisation
 	if b.MigrationConfig.Organisation == "" {
 		org = b.GlobalConfig.Defaults.Organisation
 		b.log.Debug("No organisation chosen, using ", org)
 	}
+
+	return org
+}
+
+// Handle setting defaults for the migration options
+func (b *Banshee) migrationOptions() (string, []string, error) {
+	org := b.getOrgName()
 
 	if len(b.MigrationConfig.ListOfRepos) > 0 {
 		return org, b.MigrationConfig.ListOfRepos, nil
