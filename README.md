@@ -22,7 +22,7 @@ required to get them applied.
 # Usage
 
 ```bash
-Usage: main <command>
+Usage: banshee <command>
 
 Flags:
   -h, --help                      Show context-sensitive help.
@@ -34,6 +34,9 @@ Commands:
 
   migrate <path>
     Run a migration
+
+  list <path>
+    List PRs associated with a migration
 
 Run "main <command> --help" for more information on a command.
 ```
@@ -47,6 +50,13 @@ banshee migrate examples/migration_config/migration.yaml \
     --config examples/global_config/config.yaml
 ```
 
+### Listing all PRs for a migration
+
+```bash
+banshee list examples/migration_config/migration.yaml \
+    --config examples/global_config/config.yaml \
+    --format json
+```
 
 # Configuration
 Examples of configuration and all available options can be found in the examples
