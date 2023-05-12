@@ -23,6 +23,8 @@ func (b *Banshee) List(state string, format string) error {
 		return validationErr
 	}
 
+	query := b.formatPRQuery(state)
+	b.log.Debug("Getting list of PRs matching: \"", query, "\"")
 	prList, prListErr := b.GithubClient.GetMatchingPRs(b.formatPRQuery(state))
 	if prListErr != nil {
 		return prListErr

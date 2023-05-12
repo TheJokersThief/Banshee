@@ -25,7 +25,7 @@ func NewBanshee(config configs.GlobalConfig, migConfig configs.MigrationConfig) 
 	if lvlErr != nil {
 		return nil, lvlErr
 	}
-	logger.SetLevel(lvl)
+	logrus.SetLevel(lvl)
 	log := logger.WithField("command", "unset")
 
 	ctx := context.Background()
