@@ -40,7 +40,12 @@ func (b *Banshee) List(state string, format string) error {
 		w := tabwriter.NewWriter(os.Stdout, 1, 1, 1, ' ', 0)
 		fmt.Fprintln(w, header)
 		for _, pr := range prList {
-			line := strings.Join([]string{*pr.State, *pr.MergeableState, *pr.HTMLURL}, "\t")
+			state := *pr.State
+			if *pr.Merged {
+				state = "merged"
+			}
+
+			line := strings.Join([]string{state, *pr.MergeableState, *pr.HTMLURL}, "\t")
 			fmt.Fprintln(w, line)
 		}
 		w.Flush()
