@@ -32,6 +32,8 @@ type OptionsConfig struct {
 		Enabled   bool   `fig:"enabled"`
 		Directory string `fig:"directory"`
 	} `fig:"cache_repos"`
+
+	Merges Merges `fig:"merging"`
 }
 
 type DefaultsConfig struct {
@@ -41,4 +43,9 @@ type DefaultsConfig struct {
 	Organisation string `fig:"organisation"`
 
 	CodeReviewer string `fig:"code_reviewer"`
+}
+
+type Merges struct {
+	Strategy    string `fig:"strategy" default:"merge"`
+	AppendTitle string `fig:"append_title" default:""`
 }

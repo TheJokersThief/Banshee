@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/avast/retry-go/v4"
 	"github.com/google/go-github/v52/github"
 )
 
@@ -48,7 +49,7 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 	}
 
 	if gc.GlobalConfig.Options.AssignCodeReviewerIfNoneAssigned {
-		assignmentErr := gc.AssignDefaultReviewer(org, repo, *pr.Number)
+		assignmentErr := gc.AssignDefaultReviewer(pr)
 		if assignmentErr != nil {
 			return "", assignmentErr
 		}
@@ -57,9 +58,32 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 	return pr.GetHTMLURL(), nil
 }
 
-func (gc *GithubClient) UpdatePullRequest(pr *github.PullRequest, org, repo, body string) error {
+func (gc *GithubClient) MergePullRequest(pr *github.PullRequest) error {
+	owner, repo := gc.getRepoNameFromURL(*pr.HTMLURL)
+
+	options := &github.PullRequestOptions{MergeMethod: gc.GlobalConfig.Options.Merges.Strategy}
+	searchErr := retry.Do(
+		func() error {
+			var err error
+			_, _, err = gc.Client.PullRequests.Merge(
+				gc.ctx, owner, repo, *pr.Number, gc.GlobalConfig.Options.Merges.AppendTitle, options)
+			return checkIfRecoverable(err)
+		},
+		defaultRetryOptions...,
+	)
+
+	if searchErr != nil {
+		return searchErr
+	}
+
+	return nil
+}
+
+func (gc *GithubClient) UpdatePullRequest(pr *github.PullRequest, body string) error {
+	owner, repo := gc.getRepoNameFromURL(*pr.HTMLURL)
+
 	pr.Body = &body
-	_, _, err := gc.Client.PullRequests.Edit(gc.ctx, org, repo, *pr.Number, pr)
+	_, _, err := gc.Client.PullRequests.Edit(gc.ctx, owner, repo, *pr.Number, pr)
 	if err != nil {
 		return err
 	}
@@ -67,10 +91,12 @@ func (gc *GithubClient) UpdatePullRequest(pr *github.PullRequest, org, repo, bod
 	return nil
 }
 
-func (gc *GithubClient) AssignDefaultReviewer(org, repo string, prNumber int) error {
+func (gc *GithubClient) AssignDefaultReviewer(pr *github.PullRequest) error {
+
+	owner, repo := gc.getRepoNameFromURL(*pr.HTMLURL)
 
 	listOpts := &github.ListOptions{}
-	reviewers, _, err := gc.Client.PullRequests.ListReviewers(gc.ctx, org, repo, prNumber, listOpts)
+	reviewers, _, err := gc.Client.PullRequests.ListReviewers(gc.ctx, owner, repo, *pr.Number, listOpts)
 	if err != nil {
 		return err
 	}
@@ -81,7 +107,7 @@ func (gc *GithubClient) AssignDefaultReviewer(org, repo string, prNumber int) er
 			TeamReviewers: []string{gc.GlobalConfig.Defaults.CodeReviewer},
 		}
 
-		_, _, reviewerErr := gc.Client.PullRequests.RequestReviewers(gc.ctx, org, repo, prNumber, reviewRequest)
+		_, _, reviewerErr := gc.Client.PullRequests.RequestReviewers(gc.ctx, owner, repo, *pr.Number, reviewRequest)
 		if reviewerErr != nil {
 			return reviewerErr
 		}

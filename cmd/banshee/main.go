@@ -35,6 +35,10 @@ var CLI struct {
 		Format        string `name:"format" help:"Format for output (json, summary)" default:"summary"`
 	} `cmd:"" help:"List PRs associated with a migration"`
 
+	Merge struct {
+		MigrationFile string `arg:"" name:"path" help:"Path to migration file." type:"path"`
+	} `cmd:"" help:"Merge PRs not blocked by any branch protections"`
+
 	ConfigFile string `name:"config" short:"c" help:"Path to global CLI config" type:"path" default:"./config.yaml"`
 }
 
@@ -58,6 +62,10 @@ func main() {
 		banshee := createBanshee(globalConfig, CLI.List.MigrationFile)
 		listErr := banshee.List(CLI.List.State, CLI.List.Format)
 		handleErr(listErr)
+	case "merge <path>":
+		banshee := createBanshee(globalConfig, CLI.Merge.MigrationFile)
+		mergeErr := banshee.MergeApproved()
+		handleErr(mergeErr)
 	default:
 		printFatalError(fmt.Errorf(ctx.Command()))
 	}

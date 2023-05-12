@@ -180,7 +180,7 @@ func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, 
 	}
 
 	if pr != nil {
-		editErr := b.GithubClient.UpdatePullRequest(pr, org, repoName, prBody)
+		editErr := b.GithubClient.UpdatePullRequest(pr, prBody)
 		if editErr != nil {
 			return "", editErr
 		}

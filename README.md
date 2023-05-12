@@ -37,6 +37,9 @@ Commands:
 
   list <path>
     List PRs associated with a migration
+  
+  merge <path>
+    Merge PRs not blocked by any branch protections
 
 Run "main <command> --help" for more information on a command.
 ```
@@ -56,6 +59,20 @@ banshee migrate examples/migration_config/migration.yaml \
 banshee list examples/migration_config/migration.yaml \
     --config examples/global_config/config.yaml \
     --format json
+```
+
+### Merging any PRs not blocked by branch protections
+
+This assumes that you block merge to mainline branches with branch protections like 
+"requires a PR", "required approvers: 1", "required status checks" and that they're 
+not handled on the honour system.
+
+This just checks the GitHub [MergeableState](https://docs.github.com/en/graphql/reference/enums#mergeablestate) 
+to see if the PR can be merged.
+
+```bash
+banshee merge examples/migration_config/migration.yaml \
+    --config examples/global_config/config.yaml
 ```
 
 # Configuration
