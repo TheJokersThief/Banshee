@@ -80,6 +80,13 @@ Cloning every repo each time you want to perform a migration can be costly in ne
 
 This is particularly appealing if your organisation has several monorepos with long git histories.
 
+## Merge options (`merging`)
+
+If you're using the `merge <path>` command, these options configure the merge options. 
+
+* `strategy` is the merge strategy used
+* `append_title` is a string that will be added to the end of the merge commit's title. This can be useful if you want to do something like skip running CI for auto-merged PRs.
+
 # Defaults (`defaults`)
 
 These are defaults used when a value doesn't exist.
