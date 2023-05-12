@@ -8,7 +8,9 @@ local orbs = dsl.orbs;
 
 local tag_filter = workflows.filter_tags(only=['/v.*/']) + workflows.filter_branches(ignore=['/.*/']);
 local branches_filter = workflows.filter_branches(only=['/.*/']) + workflows.filter_tags(ignore=['/.*/']);
+
 local homedir = '/home/circleci/banshee';
+local gover = '1.20';
 
 
 pipeline.new(
@@ -19,7 +21,7 @@ pipeline.new(
             jobs=[
                 workflows.job(
                     'test',
-                    executor={ name:'go/default', tag: '1.19' },
+                    executor={ name:'go/default', tag: gover },
                     filters=branches_filter,
                     working_directory=homedir,
                     steps=[
@@ -42,7 +44,7 @@ pipeline.new(
             jobs=[
                 workflows.job(
                     'build',
-                    executor={ name:'go/default', tag: '1.19' },
+                    executor={ name:'go/default', tag: gover },
                     filters=tag_filter,
                     working_directory=homedir,
                     steps=[
