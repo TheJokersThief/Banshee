@@ -28,7 +28,8 @@ func (b *Banshee) MergeApproved() error {
 		b.log.Debug("Checking if ", *pr.HTMLURL, " is mergeable")
 		if *pr.MergeableState == "mergeable" {
 			b.log.Info("Merging", *pr.HTMLURL)
-			b.GithubClient.MergePullRequest(pr)
+			mergeErr := b.GithubClient.MergePullRequest(pr)
+			return mergeErr
 		}
 	}
 

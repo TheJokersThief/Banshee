@@ -1,6 +1,6 @@
 module github.com/thejokersthief/banshee
 
-go 1.19
+go 1.20
 
 require (
 	github.com/alecthomas/kong v0.7.1
@@ -12,6 +12,7 @@ require (
 	github.com/google/go-github/v52 v52.0.0
 	github.com/icholy/replace v0.6.0
 	github.com/kkyr/fig v0.3.1
+	github.com/pkg/errors v0.9.1
 	github.com/sirupsen/logrus v1.9.0
 	github.com/stretchr/testify v1.8.2
 	github.com/yargevad/filepathx v1.0.0

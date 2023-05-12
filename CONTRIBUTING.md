@@ -1,6 +1,6 @@
 # Dev Environment Requirements
 
-* Go 1.19
+* Go 1.20
 * [Just](https://github.com/casey/just)
 
 # User Persona

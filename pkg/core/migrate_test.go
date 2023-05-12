@@ -18,6 +18,7 @@ func TestMigrationOptions(t *testing.T) {
 		AllReposInOrg: false,
 	}
 	globalConf := configs.GlobalConfig{
+		Options:  configs.OptionsConfig{LogLevel: "info"},
 		Github:   configs.GithubConfig{Token: "testtoken"},
 		Defaults: configs.DefaultsConfig{Organisation: "testorg"},
 	}
