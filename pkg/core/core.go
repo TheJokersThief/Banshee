@@ -9,10 +9,6 @@ import (
 	localGH "github.com/thejokersthief/banshee/pkg/github"
 )
 
-func init() {
-	logrus.SetLevel(logrus.DebugLevel)
-}
-
 type Banshee struct {
 	GlobalConfig    *configs.GlobalConfig
 	MigrationConfig *configs.MigrationConfig
