@@ -43,7 +43,10 @@ options:
     # If enabled, will store all downloaded repos permanently
     enabled: false
     # Location for storing the repos cache
-    directory: "repos.cache" 
+    directory: "repos.cache"
+  merging:
+    strategy: "merge" # "merge", "squash", "rebase"
+    append_title: "[CI SKIP]" # A string to append to the merge commit message
 ```
 
 ## Assigning code reviewers (`assign_code_reviewer_if_none_assigned`)
