@@ -43,7 +43,10 @@ options:
     # If enabled, will store all downloaded repos permanently
     enabled: false
     # Location for storing the repos cache
-    directory: "repos.cache" 
+    directory: "repos.cache"
+  merging:
+    strategy: "merge" # "merge", "squash", "rebase"
+    append_title: "[CI SKIP]" # A string to append to the merge commit message
 ```
 
 ## Assigning code reviewers (`assign_code_reviewer_if_none_assigned`)
@@ -76,6 +79,13 @@ To github.com:TheJokersThief/Banshee.git
 Cloning every repo each time you want to perform a migration can be costly in network and time. To speed things up, you can choose to clone the repo once into the `directory` you choose. Then, when we need to run any migration in the future, it will first pull any new changes from the repo's default branch before running your actions.
 
 This is particularly appealing if your organisation has several monorepos with long git histories.
+
+## Merge options (`merging`)
+
+If you're using the `merge <path>` command, these options configure the merge options. 
+
+* `strategy` is the merge strategy used
+* `append_title` is a string that will be added to the end of the merge commit's title. This can be useful if you want to do something like skip running CI for auto-merged PRs.
 
 # Defaults (`defaults`)
 

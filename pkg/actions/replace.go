@@ -2,6 +2,7 @@
 package actions
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -40,9 +41,9 @@ func NewReplaceAction(dir string, description string, input map[string]string) *
 func (r *Replace) Run(log *logrus.Entry) error {
 
 	files := make(chan string)
-	errors := make(chan error)
+	errChan := make(chan error)
 	for workerCount := 0; workerCount < threadCount; workerCount++ {
-		go r.findAndReplaceWorker(log, files, errors)
+		go r.findAndReplaceWorker(log, files, errChan)
 	}
 
 	matches, err := filepathx.Glob(r.BaseDir + "/" + r.Glob)
@@ -56,11 +57,11 @@ func (r *Replace) Run(log *logrus.Entry) error {
 	}
 	close(files)
 
-	if len(errors) != 0 {
+	if len(errChan) != 0 {
 		finalError := fmt.Errorf("")
-		for i := 0; i < len(errors); i++ {
-			fileErr := <-errors
-			finalError = fmt.Errorf("%w\n%w", finalError, fileErr)
+		for i := 0; i < len(errChan); i++ {
+			fileErr := <-errChan
+			finalError = errors.Join(finalError, fileErr)
 		}
 		return finalError
 	}

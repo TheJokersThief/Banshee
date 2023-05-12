@@ -16,7 +16,10 @@ func TestOnlyOneRepoChoice(t *testing.T) {
 		ListOfRepos:   []string{"repo_name"},
 		AllReposInOrg: true,
 	}
-	globalConf := configs.GlobalConfig{Github: configs.GithubConfig{Token: "testtoken"}}
+	globalConf := configs.GlobalConfig{
+		Options: configs.OptionsConfig{LogLevel: "info"},
+		Github:  configs.GithubConfig{Token: "testtoken"},
+	}
 	b, err := NewBanshee(globalConf, mainConf)
 	assert.NoError(t, err)
 
