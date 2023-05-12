@@ -1,0 +1,36 @@
+name: 👾 Feature Suggestion
+description: File a feature suggestion/change
+title: "[FEATURE] <title>"
+labels: [Feature]
+body:
+- type: checkboxes
+  attributes:
+    label: Is there an existing suggestion for this?
+    description: |
+      Please search to see if a github issue already exists for the suggestion you have.
+      It could be good to add your voice to existing tickets, so it's easier to gauge popularity!
+    options:
+    - label: I have searched the existing issues
+      required: true
+- type: textarea
+  attributes:
+    label: Current Behavior
+    description: A concise description of what you're experiencing.
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Suggested Behavior
+    description: A concise description of what you would expect to happen.
+  validations:
+    required: false
+- type: textarea
+  attributes:
+    label: Suggestion Description
+    description: |
+      Links? References? Anything that will give us more context what you are suggesting!
+
+      Tip: You can attach images or log files by clicking this area to highlight it and then dragging files in.
+  validations:
+    required: true
+
