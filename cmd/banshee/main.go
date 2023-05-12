@@ -12,7 +12,7 @@ import (
 	"github.com/thejokersthief/banshee/pkg/core"
 )
 
-var Version = "development"
+var Version = "unset"
 var GitCommitSHA = "XXXXXX"
 
 var FatalErrorStyling = lipgloss.NewStyle().

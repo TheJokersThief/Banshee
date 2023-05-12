@@ -33,7 +33,7 @@ example_migration: _check_test_conf_exists
 _build_generic os arch version="development":
     GOOS={{ os }} GOARCH={{ arch }} CGO_ENABLED=0 \
         go build \
-        --ldflags '-X main.VersionName={{ version }} -X main.GitCommitSHA={{ COMMIT_SHA }}' \
+        --ldflags '-X main.Version={{ version }} -X main.GitCommitSHA={{ COMMIT_SHA }}' \
         -o dist/bin/{{ PROJECT_NAME }}-{{ os }}-{{ arch }} ./cmd/{{ PROJECT_NAME }}
 
 # Check if the test files exist, and error if they don't 
