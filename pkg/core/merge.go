@@ -19,14 +19,16 @@ func (b *Banshee) MergeApproved() error {
 
 	query := b.formatPRQuery(openState)
 	b.log.Debug("Getting list of PRs matching: \"", query, "\"")
-	// prList, prListErr := b.GithubClient.GetMatchingPRs(query)
-	// if prListErr != nil {
-	// 	return prListErr
-	// }
+	prList, prListErr := b.GithubClient.GetMatchingPRs(query)
+	if prListErr != nil {
+		return prListErr
+	}
 
-	// for _, pr := range prList {
-	// 	if *pr.Mergeable && *pr.Stat
-	// }
+	for _, pr := range prList {
+		if *pr.MergeableState == "mergeable" {
+			b.GithubClient.MergePullRequest(pr)
+		}
+	}
 
 	return nil
 }
