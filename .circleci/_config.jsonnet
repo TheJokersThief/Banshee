@@ -26,7 +26,11 @@ pipeline.new(
                         steps.checkout(),
                         'go/load-cache',
                         'go/mod-download',
-                        'go/test',
+                        { 'go/test': { 
+                            covermode: "atomic",
+                            failfast: true,
+                            race: true,
+                        }},
                     ],
                 )
             ],
