@@ -33,8 +33,8 @@ pipeline.new(
                             failfast: true,
                             race: true,
                         }},
-                        'go get github.com/golangci/golangci-lint/cmd/golangci-lint',
-                        'go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...',
+                        steps.run('go get github.com/golangci/golangci-lint/cmd/golangci-lint'),
+                        steps.run('go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...'),
                     ],
                 )
             ],
