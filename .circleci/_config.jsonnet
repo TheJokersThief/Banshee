@@ -20,7 +20,7 @@ pipeline.new(
             'test',
             jobs=[
                 workflows.job(
-                    'test',
+                    'test_and_lint',
                     executor={ name:'go/default', tag: gover },
                     filters=branches_filter,
                     working_directory=homedir,
@@ -33,6 +33,8 @@ pipeline.new(
                             failfast: true,
                             race: true,
                         }},
+                        'go get github.com/golangci/golangci-lint/cmd/golangci-lint',
+                        'go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...',
                     ],
                 )
             ],
