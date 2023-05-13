@@ -41,10 +41,20 @@ Commands:
   merge <path>
     Merge PRs not blocked by any branch protections
 
+  clone <path>
+    Clone all of the repositories that are going to be involved in a migration
+
 Run "main <command> --help" for more information on a command.
 ```
 
 ## Examples
+
+### Pre-cloning repos for migration
+
+```bash
+banshee clone examples/migration_config/migration.yaml \
+    --config examples/global_config/config.yaml \
+```
 
 ### Running a migration
 
@@ -58,6 +68,7 @@ banshee migrate examples/migration_config/migration.yaml \
 ```bash
 banshee list examples/migration_config/migration.yaml \
     --config examples/global_config/config.yaml \
+    --state all \
     --format json
 ```
 
