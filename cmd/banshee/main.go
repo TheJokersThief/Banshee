@@ -39,6 +39,10 @@ var CLI struct {
 		MigrationFile string `arg:"" name:"path" help:"Path to migration file." type:"path"`
 	} `cmd:"" help:"Merge PRs not blocked by any branch protections"`
 
+	Clone struct {
+		MigrationFile string `arg:"" name:"path" help:"Path to migration file." type:"path"`
+	} `cmd:"" help:"Clone all of the repositories that are going to be involved in a migration"`
+
 	ConfigFile string `name:"config" short:"c" help:"Path to global CLI config" type:"path" default:"./config.yaml"`
 }
 
@@ -66,6 +70,10 @@ func main() {
 		banshee := createBanshee(globalConfig, CLI.Merge.MigrationFile)
 		mergeErr := banshee.MergeApproved()
 		handleErr(mergeErr)
+	case "clone <path>":
+		banshee := createBanshee(globalConfig, CLI.Clone.MigrationFile)
+		cloneErr := banshee.Clone()
+		handleErr(cloneErr)
 	default:
 		printFatalError(fmt.Errorf(ctx.Command()))
 	}

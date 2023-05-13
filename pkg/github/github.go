@@ -40,7 +40,7 @@ func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context, log *
 
 	var showOutput sideband.Progress
 	if globalConf.Options.ShowGitOutput {
-		showOutput = log.Writer()
+		showOutput = os.Stdout
 	}
 
 	ghClient := &GithubClient{
