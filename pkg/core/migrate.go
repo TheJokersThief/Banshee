@@ -128,7 +128,6 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 
 		tree, _ := gitRepo.Worktree()
 		state, _ := tree.Status()
-		log.Debug("Checking if dirty...")
 		// check if git dirty
 		if !state.IsClean() {
 			changelog = append(changelog, "* "+action.Description)
@@ -169,10 +168,14 @@ func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, 
 		return "", fmt.Errorf("push error: %w", pushError)
 	}
 
+	log := b.log.WithField("repo", org+"/"+repoName)
+
+	log.Debug("Searching for pull requests")
 	pr, prErr := b.GithubClient.FindPullRequest(org, repoName, defaultBranch, b.MigrationConfig.BranchName)
 	if prErr != nil {
 		return "", prErr
 	}
+	log.Debug("Got PR result: ", pr)
 
 	prBody, bodyErr := b.formatChangelog(pr, changelog)
 	if bodyErr != nil {
@@ -180,6 +183,7 @@ func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, 
 	}
 
 	if pr != nil {
+		log.Debug("Updating pull request with new changelog")
 		editErr := b.GithubClient.UpdatePullRequest(pr, prBody)
 		if editErr != nil {
 			return "", editErr
@@ -187,6 +191,7 @@ func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, 
 		return pr.GetHTMLURL(), nil
 	}
 
+	log.Debug("Creating pull request")
 	htmlURL, prErr := b.GithubClient.CreatePullRequest(
 		org, repoName, b.MigrationConfig.PRTitle, prBody, defaultBranch,
 		b.MigrationConfig.BranchName, b.MigrationConfig.PRDrafts)

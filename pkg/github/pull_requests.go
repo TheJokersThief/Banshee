@@ -34,15 +34,14 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 		Base:                github.String(base_branch),
 		Body:                github.String(body),
 		MaintainerCanModify: github.Bool(true),
-		Draft:               &asDraft,
+		Draft:               github.Bool(asDraft),
 	}
 
 	pr, _, err := gc.Client.PullRequests.Create(gc.ctx, org, repo, newPR)
-
 	if err != nil {
 		var errResponse *github.ErrorResponse
 		ghErr := errors.As(err, &errResponse)
-		if ghErr && errResponse.Message != "Validation Failed" {
+		if ghErr {
 			return "", err
 		}
 	}
