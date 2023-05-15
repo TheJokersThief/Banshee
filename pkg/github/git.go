@@ -19,15 +19,24 @@ func (gc *GithubClient) Checkout(branch string, gitRepo *git.Repository, create 
 		return wtErr
 	}
 
+	gc.log.Debug("Checking out", branch)
 	checkoutErr := wt.Checkout(
 		&git.CheckoutOptions{
 			Branch: plumbing.NewBranchReferenceName(branch),
 			Create: create,
-			Keep:   true,
 		},
 	)
 
-	if checkoutErr != nil && !strings.Contains(checkoutErr.Error(), "already exists") {
+	if checkoutErr != nil && strings.Contains(checkoutErr.Error(), "already exists") {
+		checkoutErr = wt.Checkout(
+			&git.CheckoutOptions{
+				Branch: plumbing.NewBranchReferenceName(branch),
+				Create: false,
+			},
+		)
+	}
+
+	if checkoutErr != nil {
 		return checkoutErr
 	}
 
@@ -91,9 +100,6 @@ func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
 			Auth: &gitHttp.BasicAuth{
 				Username: "placeholderUsername", // anything except an empty string
 				Password: gc.accessToken,
-			},
-			RefSpecs: []config.RefSpec{
-				config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewRemoteReferenceName(defaultRemote, branch)),
 			},
 		},
 	)
