@@ -39,6 +39,7 @@ func NewReplaceAction(dir string, description string, input map[string]string) *
 }
 
 func (r *Replace) Run(log *logrus.Entry) error {
+	log.Debug("Replacing ", r.OldString, " with ", r.NewString)
 
 	files := make(chan string)
 	errChan := make(chan error)
