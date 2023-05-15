@@ -16,4 +16,5 @@ type MigrationConfig struct {
 
 	PRTitle    string `fig:"pr_title"`
 	PRBodyFile string `fig:"pr_body_file"`
+	PRDrafts   bool   `fig:"pr_as_drafts"`
 }

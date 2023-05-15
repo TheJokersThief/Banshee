@@ -27,8 +27,7 @@ func (gc *GithubClient) FindPullRequest(org, repo, baseBranch, headBranch string
 	return nil, nil
 }
 
-func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, merge_branch string) (string, error) {
-	asDraft := true
+func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, merge_branch string, asDraft bool) (string, error) {
 	newPR := &github.NewPullRequest{
 		Title:               github.String(title),
 		Head:                github.String(merge_branch),

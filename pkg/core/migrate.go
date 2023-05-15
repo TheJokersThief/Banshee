@@ -188,7 +188,8 @@ func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, 
 	}
 
 	htmlURL, prErr := b.GithubClient.CreatePullRequest(
-		org, repoName, b.MigrationConfig.PRTitle, prBody, defaultBranch, b.MigrationConfig.BranchName)
+		org, repoName, b.MigrationConfig.PRTitle, prBody, defaultBranch,
+		b.MigrationConfig.BranchName, b.MigrationConfig.PRDrafts)
 	if prErr != nil {
 		return "", prErr
 	}

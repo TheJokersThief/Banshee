@@ -24,3 +24,4 @@ actions:
 
 pr_title: "An example PR title"
 pr_body_file: "examples/prbody.md"
+pr_as_drafts: false # If true, PRs will be created as drafts
