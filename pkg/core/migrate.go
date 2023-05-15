@@ -175,7 +175,7 @@ func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, 
 	if prErr != nil {
 		return "", prErr
 	}
-	log.Debug("Got PR result: ", pr)
+	log.Debug("Got PR result: ", pr != nil)
 
 	prBody, bodyErr := b.formatChangelog(pr, changelog)
 	if bodyErr != nil {
