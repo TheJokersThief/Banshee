@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/google/go-github/v52/github"
@@ -42,7 +43,7 @@ func (gc *GithubClient) GetMatchingPRs(query string) ([]*github.PullRequest, err
 		}
 		opt.Page = resp.NextPage
 	}
-	close(prWorker.issues)
+	prWorker.shutdownWorkers()
 
 	return prWorker.processResults(), prWorker.processErrors()
 }
@@ -52,26 +53,38 @@ const (
 )
 
 type PRDataWorker struct {
-	client  *GithubClient
-	issues  chan *github.Issue
-	results chan *github.PullRequest
-	errChan chan error
+	client    *GithubClient
+	waitGroup *sync.WaitGroup
+	issues    chan *github.Issue
+	results   chan *github.PullRequest
+	errChan   chan error
 }
 
 func NewPRDataWorker(client *GithubClient) *PRDataWorker {
 	return &PRDataWorker{
-		client:  client,
-		issues:  make(chan *github.Issue, 64),
-		results: make(chan *github.PullRequest, math.MaxInt32), // This covers 4,294,967,296 PRs. If we ever reach that limit, we'll need to re-evaluate
-		errChan: make(chan error, math.MaxInt32),
+		client:    client,
+		waitGroup: &sync.WaitGroup{},
+		issues:    make(chan *github.Issue, 64),
+		results:   make(chan *github.PullRequest, math.MaxInt32), // This covers 4,294,967,296 PRs. If we ever reach that limit, we'll need to re-evaluate
+		errChan:   make(chan error, math.MaxInt32),
 	}
 }
 
 // Spawn workers to process PR data
 func (w *PRDataWorker) spawnWorkers() {
 	for workerIndex := 0; workerIndex < prDataWorkers; workerIndex++ {
-		go w.prDataWorker()
+		w.waitGroup.Add(1)
+
+		go func() {
+			defer w.waitGroup.Done()
+			w.prDataWorker()
+		}()
 	}
+}
+
+func (w *PRDataWorker) shutdownWorkers() {
+	close(w.issues)
+	w.waitGroup.Wait()
 }
 
 // Process issues and transform them into PRs
@@ -85,18 +98,18 @@ func (w *PRDataWorker) prDataWorker() {
 		}
 
 		w.results <- pullRequest
-		continue
 	}
 }
 
 // Assemble our pull requests for returning
 func (w *PRDataWorker) processResults() []*github.PullRequest {
 	pullRequests := []*github.PullRequest{}
+	w.client.log.Debug("Got ", len(w.results), " pull request results")
 	for resultIndex := 0; resultIndex < len(w.results); resultIndex++ {
 		pr := <-w.results
 		pullRequests = append(pullRequests, pr)
 	}
-	close(w.results)
+	// close(w.results)
 	return pullRequests
 }
 
@@ -110,7 +123,7 @@ func (w *PRDataWorker) processErrors() error {
 		}
 		return finalError
 	}
-	close(w.errChan)
+	// close(w.errChan)
 
 	return nil
 }
