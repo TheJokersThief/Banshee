@@ -117,3 +117,17 @@ func (gc *GithubClient) AssignDefaultReviewer(pr *github.PullRequest) error {
 
 	return nil
 }
+
+func (gc *GithubClient) GetPR(owner, repo string, number int) (*github.PullRequest, error) {
+	var pullRequest *github.PullRequest
+	searchErr := retry.Do(
+		func() error {
+			var err error
+			pullRequest, _, err = gc.Client.PullRequests.Get(gc.ctx, owner, repo, number)
+			return checkIfRecoverable(err)
+		},
+		defaultRetryOptions...,
+	)
+
+	return pullRequest, searchErr
+}
