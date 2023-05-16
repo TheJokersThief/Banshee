@@ -62,7 +62,7 @@ func NewPRDataWorker(client *GithubClient) *PRDataWorker {
 	return &PRDataWorker{
 		client:  client,
 		issues:  make(chan *github.Issue, 64),
-		results: make(chan *github.PullRequest, math.MaxInt32),
+		results: make(chan *github.PullRequest, math.MaxInt32), // This covers 4,294,967,296 PRs. If we ever reach that limit, we'll need to re-evaluate
 		errChan: make(chan error, math.MaxInt32),
 	}
 }
