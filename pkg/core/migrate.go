@@ -108,7 +108,6 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 	repoNameOnly := strings.ReplaceAll(repo, org+"/", "")
 
 	log.Info("Processing ", repo)
-
 	dir, gitRepo, defaultBranch, cloneErr := b.cloneRepo(log, org, repo)
 	if cloneErr != nil {
 		return "", cloneErr

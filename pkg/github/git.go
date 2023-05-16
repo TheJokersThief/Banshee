@@ -98,10 +98,7 @@ func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
 		&git.PushOptions{
 			Progress:   gc.Writer,
 			RemoteName: "origin",
-			Auth: &gitHttp.BasicAuth{
-				Username: "placeholderUsername", // anything except an empty string
-				Password: gc.accessToken,
-			},
+			Auth:       gc.auth(),
 		},
 	)
 

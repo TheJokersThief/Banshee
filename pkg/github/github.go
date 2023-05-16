@@ -13,7 +13,6 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
-	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/google/go-github/v52/github"
 	"github.com/sirupsen/logrus"
 	"github.com/thejokersthief/banshee/pkg/configs"
@@ -117,12 +116,9 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 		// If the directory doesn't exist, clone the repo into it
 		gc.log.Info("Cloning ", gitURL, " [", defaultBranch, "]...")
 		repo, plainOpenErr = git.PlainClone(dir, false, &git.CloneOptions{
-			Progress: gc.Writer,
-			URL:      gitURL,
-			Auth: &gitHttp.BasicAuth{
-				Username: "placeholderUsername", // anything except an empty string
-				Password: gc.accessToken,
-			},
+			Progress:      gc.Writer,
+			URL:           gitURL,
+			Auth:          gc.auth(),
 			ReferenceName: plumbing.NewBranchReferenceName(defaultBranch),
 			SingleBranch:  true,
 			// Depth:         1, // Unfortunately there's an issue in go-git that means using depth breaks the working tree
