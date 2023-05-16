@@ -4,6 +4,7 @@ package github
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/google/go-github/v52/github"
@@ -42,7 +43,10 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 	if err != nil {
 		var errResponse *github.ErrorResponse
 		ghErr := errors.As(err, &errResponse)
-		if ghErr && errResponse.Message != "Validation Failed" {
+		if ghErr {
+			if strings.Contains(errResponse.Errors[0].Message, "No commits between") {
+				return "", nil
+			}
 			return "", err
 		}
 	}
