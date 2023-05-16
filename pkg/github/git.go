@@ -31,6 +31,7 @@ func (gc *GithubClient) Checkout(branch string, gitRepo *git.Repository, create 
 		&git.CheckoutOptions{
 			Branch: plumbing.NewBranchReferenceName(branch),
 			Create: create,
+			Force:  true,
 		},
 	)
 
@@ -39,6 +40,7 @@ func (gc *GithubClient) Checkout(branch string, gitRepo *git.Repository, create 
 			&git.CheckoutOptions{
 				Branch: plumbing.NewBranchReferenceName(branch),
 				Create: false,
+				Force:  true,
 			},
 		)
 	}
@@ -59,6 +61,7 @@ func (gc *GithubClient) Fetch(branch string, gitRepo *git.Repository) error {
 		RefSpecs: []config.RefSpec{
 			config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewRemoteReferenceName(defaultRemote, branch)),
 		},
+		Force: true,
 	})
 
 	if fetchErr != nil && (!errors.Is(fetchErr, git.NoErrAlreadyUpToDate) && !strings.Contains(fetchErr.Error(), "couldn't find remote ref")) {
@@ -76,11 +79,11 @@ func (gc *GithubClient) Pull(branch string, gitRepo *git.Repository) error {
 
 	gc.log.Debug("Pulling ", plumbing.NewBranchReferenceName(branch))
 	pullErr := wt.Pull(&git.PullOptions{
-		Progress:      gc.Writer,
-		RemoteName:    "origin",
-		ReferenceName: plumbing.NewBranchReferenceName(branch),
-		Auth:          gc.auth(),
-		SingleBranch:  true,
+		Progress:     gc.Writer,
+		RemoteName:   "origin",
+		Auth:         gc.auth(),
+		SingleBranch: true,
+		Force:        true,
 	})
 
 	if pullErr != nil && (!errors.Is(pullErr, git.NoErrAlreadyUpToDate) && pullErr.Error() != "reference not found") {
