@@ -12,6 +12,13 @@ import (
 
 const defaultRemote = "origin"
 
+func (gc *GithubClient) auth() *gitHttp.BasicAuth {
+	return &gitHttp.BasicAuth{
+		Username: "placeholderUsername", // anything except an empty string
+		Password: gc.accessToken,
+	}
+}
+
 // Checkout a local branch, switching the working tree
 func (gc *GithubClient) Checkout(branch string, gitRepo *git.Repository, create bool) error {
 	wt, wtErr := gitRepo.Worktree()
@@ -19,15 +26,24 @@ func (gc *GithubClient) Checkout(branch string, gitRepo *git.Repository, create 
 		return wtErr
 	}
 
+	gc.log.Debug("Checking out", branch)
 	checkoutErr := wt.Checkout(
 		&git.CheckoutOptions{
 			Branch: plumbing.NewBranchReferenceName(branch),
 			Create: create,
-			Keep:   true,
 		},
 	)
 
-	if checkoutErr != nil && !strings.Contains(checkoutErr.Error(), "already exists") {
+	if checkoutErr != nil && strings.Contains(checkoutErr.Error(), "already exists") {
+		checkoutErr = wt.Checkout(
+			&git.CheckoutOptions{
+				Branch: plumbing.NewBranchReferenceName(branch),
+				Create: false,
+			},
+		)
+	}
+
+	if checkoutErr != nil {
 		return checkoutErr
 	}
 
@@ -39,10 +55,7 @@ func (gc *GithubClient) Fetch(branch string, gitRepo *git.Repository) error {
 	gc.log.Debug("Fetching references for ", plumbing.NewBranchReferenceName(branch))
 	fetchErr := gitRepo.Fetch(&git.FetchOptions{
 		Progress: gc.Writer,
-		Auth: &gitHttp.BasicAuth{
-			Username: "placeholderUsername", // anything except an empty string
-			Password: gc.accessToken,
-		},
+		Auth:     gc.auth(),
 		RefSpecs: []config.RefSpec{
 			config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewRemoteReferenceName(defaultRemote, branch)),
 		},
@@ -66,11 +79,8 @@ func (gc *GithubClient) Pull(branch string, gitRepo *git.Repository) error {
 		Progress:      gc.Writer,
 		RemoteName:    "origin",
 		ReferenceName: plumbing.NewBranchReferenceName(branch),
-		Auth: &gitHttp.BasicAuth{
-			Username: "placeholderUsername", // anything except an empty string
-			Password: gc.accessToken,
-		},
-		SingleBranch: true,
+		Auth:          gc.auth(),
+		SingleBranch:  true,
 	})
 
 	if pullErr != nil && (!errors.Is(pullErr, git.NoErrAlreadyUpToDate) && pullErr.Error() != "reference not found") {
@@ -91,9 +101,6 @@ func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
 			Auth: &gitHttp.BasicAuth{
 				Username: "placeholderUsername", // anything except an empty string
 				Password: gc.accessToken,
-			},
-			RefSpecs: []config.RefSpec{
-				config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewRemoteReferenceName(defaultRemote, branch)),
 			},
 		},
 	)
