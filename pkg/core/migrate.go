@@ -84,6 +84,11 @@ func (b *Banshee) migrationOptions() (string, []string, error) {
 		}
 	}
 
+	if b.MigrationConfig.AllReposInOrg {
+		allRepos, allReposErr := b.GithubClient.GetAllRepos(org)
+		return org, allRepos, allReposErr
+	}
+
 	return org, []string{}, nil
 }
 
