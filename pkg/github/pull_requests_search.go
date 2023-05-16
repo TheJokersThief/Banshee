@@ -44,8 +44,9 @@ func (gc *GithubClient) GetMatchingPRs(query string) ([]*github.PullRequest, err
 		opt.Page = resp.NextPage
 	}
 	prWorker.shutdownWorkers()
+	results := prWorker.processResults()
 
-	return prWorker.processResults(), prWorker.processErrors()
+	return results, prWorker.processErrors()
 }
 
 const (
@@ -74,7 +75,6 @@ func NewPRDataWorker(client *GithubClient) *PRDataWorker {
 func (w *PRDataWorker) spawnWorkers() {
 	for workerIndex := 0; workerIndex < prDataWorkers; workerIndex++ {
 		w.waitGroup.Add(1)
-
 		go func() {
 			defer w.waitGroup.Done()
 			w.prDataWorker()
@@ -104,12 +104,13 @@ func (w *PRDataWorker) prDataWorker() {
 // Assemble our pull requests for returning
 func (w *PRDataWorker) processResults() []*github.PullRequest {
 	pullRequests := []*github.PullRequest{}
-	w.client.log.Debug("Got ", len(w.results), " pull request results")
-	for resultIndex := 0; resultIndex < len(w.results); resultIndex++ {
+	totalResults := len(w.results)
+	for resultIndex := 0; resultIndex < totalResults; resultIndex++ {
 		pr := <-w.results
 		pullRequests = append(pullRequests, pr)
 	}
-	// close(w.results)
+
+	close(w.results)
 	return pullRequests
 }
 
@@ -117,13 +118,14 @@ func (w *PRDataWorker) processResults() []*github.PullRequest {
 func (w *PRDataWorker) processErrors() error {
 	if len(w.errChan) > 0 {
 		finalError := fmt.Errorf("")
-		for i := 0; i < len(w.errChan); i++ {
+		totalErrs := len(w.errChan)
+		for i := 0; i < totalErrs; i++ {
 			prGetErr := <-w.errChan
 			finalError = errors.Join(finalError, prGetErr)
 		}
 		return finalError
 	}
-	// close(w.errChan)
+	close(w.errChan)
 
 	return nil
 }

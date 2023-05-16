@@ -61,7 +61,8 @@ func (r *Replace) Run(log *logrus.Entry) error {
 
 	if len(errChan) != 0 {
 		finalError := fmt.Errorf("")
-		for i := 0; i < len(errChan); i++ {
+		totalErrs := len(errChan)
+		for i := 0; i < totalErrs; i++ {
 			fileErr := <-errChan
 			finalError = errors.Join(finalError, fileErr)
 		}
