@@ -8,7 +8,7 @@ import (
 
 func (gc *GithubClient) GetAllRepos(owner string) ([]string, error) {
 	repos := []string{}
-	opt := &github.RepositoryListOptions{Type: "owner", Sort: "created", Direction: "asc"}
+	opt := &github.RepositoryListByOrgOptions{Type: "all", Sort: "created", Direction: "asc"}
 
 	for {
 
@@ -17,7 +17,7 @@ func (gc *GithubClient) GetAllRepos(owner string) ([]string, error) {
 		searchErr := retry.Do(
 			func() error {
 				var err error
-				searchResult, resp, err = gc.Client.Repositories.List(gc.ctx, owner, opt)
+				searchResult, resp, err = gc.Client.Repositories.ListByOrg(gc.ctx, owner, opt)
 				return checkIfRecoverable(err)
 			},
 			defaultRetryOptions...,

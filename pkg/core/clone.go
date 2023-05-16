@@ -23,10 +23,13 @@ func (b *Banshee) Clone() error {
 		return cacheErr
 	}
 
+	b.log.Info("Fetching list of repos to clone")
 	org, repos, optionsErr := b.migrationOptions()
 	if optionsErr != nil {
 		return optionsErr
 	}
+
+	b.log.Info("Cloning ", len(repos), " repos")
 
 	for _, repo := range repos {
 		_, _, _, cloneErr := b.cloneRepo(b.log, org, repo)
