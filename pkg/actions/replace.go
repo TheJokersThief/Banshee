@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"strings"
 
@@ -41,8 +42,8 @@ func NewReplaceAction(dir string, description string, input map[string]string) *
 func (r *Replace) Run(log *logrus.Entry) error {
 	log.Debug("Replace action: ", r.OldString, " --> ", r.NewString)
 
-	files := make(chan string)
-	errChan := make(chan error)
+	files := make(chan string, 512)
+	errChan := make(chan error, math.MaxInt8)
 	for workerCount := 0; workerCount < threadCount; workerCount++ {
 		go r.findAndReplaceWorker(log, files, errChan)
 	}

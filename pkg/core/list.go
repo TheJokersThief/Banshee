@@ -18,13 +18,12 @@ const (
 func (b *Banshee) List(state string, format string) error {
 
 	b.log = logrus.WithField("command", "migrate")
-
 	if validationErr := b.validateMigrateCommand(); validationErr != nil {
 		return validationErr
 	}
 
 	query := b.formatPRQuery(state)
-	b.log.Debug("Getting list of PRs matching: \"", query, "\"")
+	b.log.Info("Getting list of PRs matching: \"", query, "\"")
 	prList, prListErr := b.GithubClient.GetMatchingPRs(query)
 	if prListErr != nil {
 		return prListErr
