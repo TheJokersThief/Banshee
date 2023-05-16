@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	header = "state\tmergeable_state\thtml_url"
+	header = "state\tmergeable_state\thtml_url\treviewer_teams"
 )
 
 // Perform a migration
@@ -46,7 +46,11 @@ func (b *Banshee) List(state string, format string) error {
 				state = "merged"
 			}
 
-			line := strings.Join([]string{state, *pr.MergeableState, *pr.HTMLURL}, "\t")
+			teams := []string{}
+			for _, team := range pr.RequestedTeams {
+				teams = append(teams, *team.Name)
+			}
+			line := strings.Join([]string{state, *pr.MergeableState, *pr.HTMLURL, strings.Join(teams, ",")}, "\t")
 			fmt.Fprintln(w, line)
 		}
 		w.Flush()
