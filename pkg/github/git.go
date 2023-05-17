@@ -77,6 +77,13 @@ func (gc *GithubClient) Pull(branch string, gitRepo *git.Repository) error {
 		return wtErr
 	}
 
+	gc.log.Debug("Resetting ", plumbing.NewBranchReferenceName(branch), " and clearing any unstaged changes")
+	// Do a hard reset before pulling to ensure we start from a clean stage
+	resetErr := wt.Reset(&git.ResetOptions{Mode: git.HardReset})
+	if resetErr != nil {
+		return resetErr
+	}
+
 	gc.log.Debug("Pulling ", plumbing.NewBranchReferenceName(branch))
 	pullErr := wt.Pull(&git.PullOptions{
 		Progress:     gc.Writer,
