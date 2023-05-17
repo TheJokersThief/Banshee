@@ -19,14 +19,19 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type RefreshTokenItr interface {
+	Token(ctx context.Context) (string, error)
+}
+
 type GithubClient struct {
 	Client       *github.Client
 	Writer       sideband.Progress
 	GlobalConfig *configs.GlobalConfig
 
-	log         *logrus.Entry
-	accessToken string
-	ctx         context.Context
+	log             *logrus.Entry
+	tokenRefreshItr *ghinstallation.Transport
+	accessToken     string
+	ctx             context.Context
 }
 
 var (
@@ -43,10 +48,11 @@ func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context, log *
 	}
 
 	ghClient := &GithubClient{
-		GlobalConfig: &globalConf,
-		ctx:          ctx,
-		log:          log.WithField("client", "GithubClient"),
-		Writer:       showOutput,
+		GlobalConfig:    &globalConf,
+		ctx:             ctx,
+		log:             log.WithField("client", "GithubClient"),
+		tokenRefreshItr: nil,
+		Writer:          showOutput,
 	}
 
 	if globalConf.Github.UseGithubApp {
@@ -98,6 +104,7 @@ func newGithubAppClient(globalConf configs.GlobalConfig, ghClient *GithubClient,
 	// Use installation transport with client.
 	ghClient.Client = github.NewClient(&http.Client{Transport: itr})
 	ghClient.accessToken, err = itr.Token(ctx)
+	ghClient.tokenRefreshItr = itr
 	if err != nil {
 		return nil, err
 	}

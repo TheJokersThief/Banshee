@@ -13,6 +13,16 @@ import (
 const defaultRemote = "origin"
 
 func (gc *GithubClient) auth() *gitHttp.BasicAuth {
+	if gc.tokenRefreshItr != nil {
+		accessToken, tokenRefreshErr := gc.tokenRefreshItr.Token(gc.ctx)
+		if tokenRefreshErr != nil {
+			gc.log.Error(tokenRefreshErr)
+		} else {
+			// Only update the access token if refreshing was succesful
+			gc.accessToken = accessToken
+		}
+	}
+
 	return &gitHttp.BasicAuth{
 		Username: "placeholderUsername", // anything except an empty string
 		Password: gc.accessToken,
