@@ -19,10 +19,6 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type RefreshTokenItr interface {
-	Token(ctx context.Context) (string, error)
-}
-
 type GithubClient struct {
 	Client       *github.Client
 	Writer       sideband.Progress
