@@ -72,6 +72,10 @@ github.com/google/go-github/v52 v52.0.0 h1:uyGWOY+jMQ8GVGSX8dkSwCzlehU3WfdxQ7Gwe
 github.com/google/go-github/v52 v52.0.0/go.mod h1:WJV6VEEUPuMo5pXqqa2ZCZEdbQqua4zAk2MZTIo+m+4=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
 github.com/google/go-querystring v1.1.0/go.mod h1:Kcdr2DB4koayq7X8pmAG4sNG59So17icRSOU623lUBU=
+github.com/gosimple/slug v1.13.1 h1:bQ+kpX9Qa6tHRaK+fZR0A0M2Kd7Pa5eHPPsb1JpHD+Q=
+github.com/gosimple/slug v1.13.1/go.mod h1:UiRaFH+GEilHstLUmcBgWcI42viBN7mAb818JrYOeFQ=
+github.com/gosimple/unidecode v1.0.1 h1:hZzFTMMqSswvf0LBJZCZgThIZrpDHFXux9KeGmn6T/o=
+github.com/gosimple/unidecode v1.0.1/go.mod h1:CP0Cr1Y1kogOtx0bJblKzsVWrqYaqfNOnHzpgWw4Awc=
 github.com/hexops/gotextdiff v1.0.3 h1:gitA9+qJrrTCsiCl7+kh75nPqQt1cx4ZkudSTLoUqJM=
 github.com/icholy/replace v0.6.0 h1:EBiD2pGqZIOJAbEaf/5GVRaD/Pmbb4n+K3LrBdXd4dw=
 github.com/icholy/replace v0.6.0/go.mod h1:zzi8pxElj2t/5wHHHYmH45D+KxytX/t4w3ClY5nlK+g=

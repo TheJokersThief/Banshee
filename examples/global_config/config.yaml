@@ -20,9 +20,17 @@ options:
     # Location for storing the repos cache
     directory: "repos.cache"
 
+  save_progress:
+    # If enabled, banshee will track your progress and resume from where you left off
+    enabled: true
+    # Location for storing progress files
+    directory: "repos.cache/_progress"
+
   merging:
-    strategy: "merge" # "merge", "squash", "rebase"
-    append_title: "[CI SKIP]" # A string to append to the merge commit message
+    # "merge", "squash", "rebase"
+    strategy: "merge"
+    # A string to append to the merge commit message
+    append_title: "[CI SKIP]"
 
 defaults:
   # The author and commit email

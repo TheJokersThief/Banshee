@@ -5,8 +5,10 @@ import (
 	"errors"
 	"os"
 	"path"
+	"strings"
 	"time"
 
+	"github.com/gosimple/slug"
 	"github.com/sirupsen/logrus"
 	"github.com/thejokersthief/banshee/pkg/configs"
 )
@@ -17,6 +19,10 @@ type Progress struct {
 	Config *configs.ProgressConfig
 
 	log *logrus.Entry
+}
+
+func GenerateProgressID(org, branchName string) string {
+	return slug.Make(strings.Join([]string{org, branchName}, "_"))
 }
 
 func NewProgress(log *logrus.Entry, progressDir, progressID string) (*Progress, error) {
