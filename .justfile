@@ -13,6 +13,7 @@ build_darwin_arm version="development": (_build_generic "darwin" "arm64" version
 
 # Run code styling and static analysis checks
 lint:
+    go get github.com/golangci/golangci-lint/cmd/golangci-lint
     go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...
 
 # Push a tag to mark a new version

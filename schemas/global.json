@@ -1,0 +1,169 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/GlobalConfig",
+    "definitions": {
+        "GlobalConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "github": {
+                    "$ref": "#/definitions/Github"
+                },
+                "options": {
+                    "$ref": "#/definitions/Options"
+                },
+                "defaults": {
+                    "$ref": "#/definitions/Defaults"
+                }
+            },
+            "required": [
+                "defaults",
+                "github",
+                "options"
+            ],
+            "title": "GlobalConfig"
+        },
+        "Defaults": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "git_email": {
+                    "type": "string"
+                },
+                "git_name": {
+                    "type": "string"
+                },
+                "organisation": {
+                    "type": "string"
+                },
+                "code_reviewer": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "code_reviewer",
+                "git_email",
+                "git_name",
+                "organisation"
+            ],
+            "title": "Defaults"
+        },
+        "Github": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "use_github_app": {
+                    "type": "boolean"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "app_id": {
+                    "type": "integer"
+                },
+                "app_installation_id": {
+                    "type": "integer"
+                },
+                "app_private_key_filepath": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "app_id",
+                "app_installation_id",
+                "app_private_key_filepath",
+                "token",
+                "use_github_app"
+            ],
+            "title": "Github"
+        },
+        "Options": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "log_level": {
+                    "type": "string"
+                },
+                "assign_code_reviewer_if_none_assigned": {
+                    "type": "boolean"
+                },
+                "show_git_output": {
+                    "type": "boolean"
+                },
+                "cache_repos": {
+                    "$ref": "#/definitions/CacheRepos"
+                },
+                "save_progress": {
+                    "$ref": "#/definitions/SaveProgress"
+                },
+                "merging": {
+                    "$ref": "#/definitions/Merging"
+                }
+            },
+            "required": [
+                "assign_code_reviewer_if_none_assigned",
+                "cache_repos",
+                "log_level",
+                "merging",
+                "save_progress",
+                "show_git_output"
+            ],
+            "title": "Options"
+        },
+        "CacheRepos": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "directory": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "directory",
+                "enabled"
+            ],
+            "title": "CacheRepos"
+        },
+        "Merging": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "strategy": {
+                    "type": "string"
+                },
+                "append_title": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "append_title",
+                "strategy"
+            ],
+            "title": "Merging"
+        },
+        "SaveProgress": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                },
+                "directory": {
+                    "type": "string"
+                },
+                "batch": {
+                    "type": "integer"
+                }
+            },
+            "required": [
+                "batch",
+                "directory",
+                "enabled"
+            ],
+            "title": "SaveProgress"
+        }
+    }
+}

@@ -33,6 +33,12 @@ type OptionsConfig struct {
 		Directory string `fig:"directory"`
 	} `fig:"cache_repos"`
 
+	SaveProgress struct {
+		Enabled   bool   `fig:"enabled"`
+		Directory string `fig:"directory"`
+		Batch     int64  `fig:"batch"`
+	} `fig:"save_progress"`
+
 	Merges Merges `fig:"merging"`
 }
 

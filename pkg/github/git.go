@@ -36,7 +36,7 @@ func (gc *GithubClient) Checkout(branch string, gitRepo *git.Repository, create 
 		return wtErr
 	}
 
-	gc.log.Debug("Checking out", branch)
+	gc.log.Debug("Checking out ", branch)
 	checkoutErr := wt.Checkout(
 		&git.CheckoutOptions{
 			Branch: plumbing.NewBranchReferenceName(branch),
@@ -74,6 +74,7 @@ func (gc *GithubClient) Fetch(branch string, gitRepo *git.Repository) error {
 		Force: true,
 	})
 
+	// "Couldn't find remote ref" happens if the branch hasn't been created on the remote
 	if fetchErr != nil && (!errors.Is(fetchErr, git.NoErrAlreadyUpToDate) && !strings.Contains(fetchErr.Error(), "couldn't find remote ref")) {
 		return fetchErr
 	}
@@ -89,7 +90,12 @@ func (gc *GithubClient) Pull(branch string, gitRepo *git.Repository) error {
 
 	gc.log.Debug("Resetting ", plumbing.NewBranchReferenceName(branch), " and clearing any unstaged changes")
 	// Do a hard reset before pulling to ensure we start from a clean stage
-	resetErr := wt.Reset(&git.ResetOptions{Mode: git.HardReset})
+	hash, resolveErr := gitRepo.ResolveRevision(plumbing.Revision("HEAD"))
+	if resolveErr != nil {
+		return resolveErr
+	}
+
+	resetErr := wt.Reset(&git.ResetOptions{Commit: *hash, Mode: git.HardReset})
 	if resetErr != nil {
 		return resetErr
 	}
@@ -103,6 +109,7 @@ func (gc *GithubClient) Pull(branch string, gitRepo *git.Repository) error {
 		Force:        true,
 	})
 
+	// "reference not found" also happens if the remote branch hasn't been created yet
 	if pullErr != nil && (!errors.Is(pullErr, git.NoErrAlreadyUpToDate) && pullErr.Error() != "reference not found") {
 		return pullErr
 	}
