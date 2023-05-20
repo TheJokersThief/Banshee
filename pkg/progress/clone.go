@@ -1,7 +1,7 @@
 package progress
 
 // Returns a list of repos that haven't been cloned yet
-func (p *Progress) ReposNotCloned() []string {
+func (p *Progress) GetReposNotCloned() []string {
 	reposForCloning := []string{}
 	for repo, progress := range p.Config.Repos {
 		if !progress.Cloned {

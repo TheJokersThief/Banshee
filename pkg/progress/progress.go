@@ -40,6 +40,16 @@ func (p *Progress) AddRepos(repos []string) {
 	for _, repo := range repos {
 		p.Config.Repos[repo] = &configs.RepoProgress{}
 	}
+	p.writeProgress()
+}
+
+func (p *Progress) GetRepos() []string {
+	repos := []string{}
+	for repo := range p.Config.Repos {
+		repos = append(repos, repo)
+	}
+
+	return repos
 }
 
 func (p *Progress) progressFile() string {
@@ -50,7 +60,7 @@ func (p *Progress) loadProgress() error {
 	if _, err := os.Stat(p.progressFile()); errors.Is(err, os.ErrNotExist) {
 		// If the file doesn't exist, that's okay - we'll write it
 		p.log.Info("Didn't find any progress file at ", p.progressFile(), ". Creating new one...")
-		p.Config = &configs.ProgressConfig{}
+		p.Config = &configs.ProgressConfig{Repos: make(map[string]*configs.RepoProgress)}
 		return p.writeProgress()
 	}
 
@@ -59,10 +69,12 @@ func (p *Progress) loadProgress() error {
 		return readErr
 	}
 
-	jsonErr := json.Unmarshal(data, p.Config)
+	var progressConf configs.ProgressConfig
+	jsonErr := json.Unmarshal(data, &progressConf)
 	if jsonErr != nil {
 		return jsonErr
 	}
+	p.Config = &progressConf
 	return nil
 }
 
