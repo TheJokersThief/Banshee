@@ -18,7 +18,7 @@ func (gc *GithubClient) auth() *gitHttp.BasicAuth {
 		if tokenRefreshErr != nil {
 			gc.log.Error(tokenRefreshErr)
 		} else {
-			// Only update the access token if refreshing was succesful
+			// Only update the access token if refreshing was successful
 			gc.accessToken = accessToken
 		}
 	}

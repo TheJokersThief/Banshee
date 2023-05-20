@@ -40,7 +40,10 @@ func (p *Progress) AddRepos(repos []string) {
 	for _, repo := range repos {
 		p.Config.Repos[repo] = &configs.RepoProgress{}
 	}
-	p.writeProgress()
+	writeErr := p.writeProgress()
+	if writeErr != nil {
+		p.log.Error(writeErr)
+	}
 }
 
 func (p *Progress) GetRepos() []string {
