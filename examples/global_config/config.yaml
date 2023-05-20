@@ -1,4 +1,4 @@
-# yaml-language-server: $schema=https://raw.githubusercontent.com/TheJokersThief/Banshee/thejokersthief/add-incremental-progress-saving/schemas/global.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/TheJokersThief/Banshee/main/schemas/global.json
 github:
   use_github_app: false
   token: "gha-12345656787800"
