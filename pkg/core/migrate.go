@@ -1,7 +1,6 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -32,6 +31,13 @@ func (b *Banshee) Migrate() error {
 		return optionsErr
 	}
 
+	if b.GlobalConfig.Options.SaveProgress.Enabled {
+		repos = b.Progress.GetReposNotMigrated()
+		if (b.GlobalConfig.Options.SaveProgress.Batch) > 0 {
+			repos = repos[:b.GlobalConfig.Options.SaveProgress.Batch]
+		}
+	}
+
 	for _, repo := range repos {
 		// Check if repo is of the form <org>/<repo>
 		if !strings.Contains(repo, "/") {
@@ -55,19 +61,13 @@ func (b *Banshee) validateMigrateCommand() error {
 	return nil
 }
 
-func (b *Banshee) getOrgName() string {
-	org := b.MigrationConfig.Organisation
-	if b.MigrationConfig.Organisation == "" {
-		org = b.GlobalConfig.Defaults.Organisation
-		b.log.Debug("No organisation chosen, using ", org)
-	}
-
-	return org
-}
-
 // Handle setting defaults for the migration options
 func (b *Banshee) migrationOptions() (string, []string, error) {
 	org := b.getOrgName()
+
+	if len(b.Progress.Config.Repos) > 0 {
+		return org, b.Progress.GetRepos(), nil
+	}
 
 	if len(b.MigrationConfig.ListOfRepos) > 0 {
 		return org, b.MigrationConfig.ListOfRepos, nil
@@ -80,28 +80,23 @@ func (b *Banshee) migrationOptions() (string, []string, error) {
 		}
 
 		if repos, searchQueryErr := b.GithubClient.GetMatchingRepos(query); searchQueryErr != nil {
-			return org, repos, searchQueryErr
+			return org, b.saveRepos(repos), searchQueryErr
 		}
 	}
 
 	if b.MigrationConfig.AllReposInOrg {
 		allRepos, allReposErr := b.GithubClient.GetAllRepos(org)
-		return org, allRepos, allReposErr
+		return org, b.saveRepos(allRepos), allReposErr
 	}
 
 	return org, []string{}, nil
 }
 
-func (b *Banshee) createCacheRepo(log *logrus.Entry, path string) error {
-	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-		log.Debug("Creating cache directory ", path)
-		err := os.Mkdir(path, os.ModePerm)
-		if err != nil {
-			return err
-		}
+func (b *Banshee) saveRepos(repos []string) []string {
+	if b.GlobalConfig.Options.SaveProgress.Enabled {
+		b.Progress.AddRepos(repos)
 	}
-
-	return nil
+	return repos
 }
 
 func (b *Banshee) getCacheRepoPath(org, repo string) string {
@@ -159,6 +154,13 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 	htmlURL, err := b.pushChanges(changelog, gitRepo, org, repoNameOnly, defaultBranch)
 	if err != nil {
 		return "", err
+	}
+
+	if b.GlobalConfig.Options.SaveProgress.Enabled {
+		saveErr := b.Progress.MarkMigrated(repo)
+		if saveErr != nil {
+			b.log.Error(saveErr)
+		}
 	}
 
 	log.Info("PR for ", repo, ": ", htmlURL)

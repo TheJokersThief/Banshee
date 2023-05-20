@@ -1,4 +1,4 @@
-
+# yaml-language-server: $schema=https://raw.githubusercontent.com/TheJokersThief/Banshee/thejokersthief/add-incremental-progress-saving/schemas/global.json
 github:
   use_github_app: false
   token: "gha-12345656787800"
@@ -25,6 +25,8 @@ options:
     enabled: true
     # Location for storing progress files
     directory: "repos.cache/_progress"
+    # The number of repos to process at a time (cloning/migrating) [-1 disables batching]
+    batch: -1
 
   merging:
     # "merge", "squash", "rebase"

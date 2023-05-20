@@ -36,6 +36,7 @@ type OptionsConfig struct {
 	SaveProgress struct {
 		Enabled   bool   `fig:"enabled"`
 		Directory string `fig:"directory"`
+		Batch     int64  `fig:"batch"`
 	} `fig:"save_progress"`
 
 	Merges Merges `fig:"merging"`

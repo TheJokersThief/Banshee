@@ -29,12 +29,26 @@ func (b *Banshee) Clone() error {
 		return optionsErr
 	}
 
+	if b.GlobalConfig.Options.SaveProgress.Enabled {
+		repos = b.Progress.GetReposNotCloned()
+		if (b.GlobalConfig.Options.SaveProgress.Batch) > 0 {
+			repos = repos[:b.GlobalConfig.Options.SaveProgress.Batch]
+		}
+	}
+
 	b.log.Info("Cloning ", len(repos), " repos")
 
 	for _, repo := range repos {
 		_, _, _, cloneErr := b.cloneRepo(b.log, org, repo)
 		if cloneErr != nil {
 			return cloneErr
+		}
+
+		if b.GlobalConfig.Options.SaveProgress.Enabled {
+			saveErr := b.Progress.MarkCloned(repo)
+			if saveErr != nil {
+				b.log.Error(saveErr)
+			}
 		}
 	}
 	return nil
