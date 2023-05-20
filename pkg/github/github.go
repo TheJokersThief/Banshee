@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bradleyfalzon/ghinstallation/v2"
@@ -139,6 +140,12 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 		// Pull any changes to the default branch since we last cloned
 		pullErr := gc.Pull(defaultBranch, repo)
 		if pullErr != nil && (!errors.Is(pullErr, git.NoErrAlreadyUpToDate)) {
+			if strings.Contains(pullErr.Error(), "worktree contains unstaged changes") {
+				// go-git just straight up can't recover if the worktree has unstaged changes, so we scorch the earth instead
+				gc.log.Error("Encountered unrecoverable worktree issue, deleting ", dir, " and recloning repo")
+				os.RemoveAll(dir)
+				return gc.ShallowClone(org, repoName, dir, migrationBranchName)
+			}
 			return nil, pullErr
 		}
 	}
@@ -153,13 +160,11 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 	}
 
 	fetchErr := gc.Fetch(migrationBranchName, repo)
-	// "Couldn't find remote ref" happens if the branch hasn't been created on the remote
 	if fetchErr != nil {
 		return nil, fetchErr
 	}
 
 	pullErr := gc.Pull(migrationBranchName, repo)
-	// "reference not found" also happens if the remote branch hasn't been created yet
 	if pullErr != nil {
 		return nil, pullErr
 	}
