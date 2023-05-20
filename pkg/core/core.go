@@ -43,23 +43,26 @@ func NewBanshee(config configs.GlobalConfig, migConfig configs.MigrationConfig) 
 		GlobalConfig:    &config,
 		MigrationConfig: &migConfig,
 		GithubClient:    client,
+		Progress:        nil,
 
 		log: log,
 		ctx: ctx,
 	}
 
-	progressID := progress.GenerateProgressID(b.getOrgName(), b.MigrationConfig.BranchName)
-	createErr := b.createCacheRepo(b.log, config.Options.SaveProgress.Directory)
-	if createErr != nil {
-		return nil, createErr
-	}
+	if b.GlobalConfig.Options.SaveProgress.Enabled {
+		progressID := progress.GenerateProgressID(b.getOrgName(), b.MigrationConfig.BranchName)
+		createErr := b.createCacheRepo(b.log, config.Options.SaveProgress.Directory)
+		if createErr != nil {
+			return nil, createErr
+		}
 
-	progress, progressErr := progress.NewProgress(log, config.Options.SaveProgress.Directory, progressID)
-	if progressErr != nil {
-		return nil, progressErr
-	}
+		progress, progressErr := progress.NewProgress(log, config.Options.SaveProgress.Directory, progressID)
+		if progressErr != nil {
+			return nil, progressErr
+		}
 
-	b.Progress = progress
+		b.Progress = progress
+	}
 	return &b, nil
 }
 

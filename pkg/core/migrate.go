@@ -31,7 +31,7 @@ func (b *Banshee) Migrate() error {
 		return optionsErr
 	}
 
-	if b.GlobalConfig.Options.SaveProgress.Enabled {
+	if b.Progress != nil {
 		repos = b.Progress.GetReposNotMigrated()
 		if (b.GlobalConfig.Options.SaveProgress.Batch) > 0 {
 			repos = repos[:b.GlobalConfig.Options.SaveProgress.Batch]
@@ -65,7 +65,7 @@ func (b *Banshee) validateMigrateCommand() error {
 func (b *Banshee) migrationOptions() (string, []string, error) {
 	org := b.getOrgName()
 
-	if len(b.Progress.Config.Repos) > 0 {
+	if b.Progress != nil && len(b.Progress.Config.Repos) > 0 {
 		return org, b.Progress.GetRepos(), nil
 	}
 
@@ -93,7 +93,7 @@ func (b *Banshee) migrationOptions() (string, []string, error) {
 }
 
 func (b *Banshee) saveRepos(repos []string) []string {
-	if b.GlobalConfig.Options.SaveProgress.Enabled {
+	if b.Progress != nil {
 		b.Progress.AddRepos(repos)
 	}
 	return repos
@@ -156,7 +156,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 		return "", err
 	}
 
-	if b.GlobalConfig.Options.SaveProgress.Enabled {
+	if b.Progress != nil {
 		saveErr := b.Progress.MarkMigrated(repo)
 		if saveErr != nil {
 			b.log.Error(saveErr)
