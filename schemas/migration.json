@@ -1,0 +1,95 @@
+{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "$ref": "#/definitions/MigrationConfig",
+    "definitions": {
+        "MigrationConfig": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "search_query": {
+                    "type": "string"
+                },
+                "all_repos_in_org": {
+                    "type": "boolean"
+                },
+                "repos": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "organisation": {
+                    "type": "string"
+                },
+                "branch_name": {
+                    "type": "string"
+                },
+                "actions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/Action"
+                    }
+                },
+                "pr_title": {
+                    "type": "string"
+                },
+                "pr_body_file": {
+                    "type": "string"
+                },
+                "pr_as_drafts": {
+                    "type": "boolean"
+                }
+            },
+            "required": [
+                "actions",
+                "all_repos_in_org",
+                "branch_name",
+                "organisation",
+                "pr_as_drafts",
+                "pr_body_file",
+                "pr_title",
+                "repos",
+                "search_query"
+            ],
+            "title": "MigrationConfig"
+        },
+        "Action": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "action": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "input": {
+                    "$ref": "#/definitions/Input"
+                }
+            },
+            "required": [
+                "action",
+                "description",
+                "input"
+            ],
+            "title": "Action"
+        },
+        "Input": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "old": {
+                    "type": "string"
+                },
+                "new": {
+                    "type": "string"
+                },
+                "command": {
+                    "type": "string"
+                }
+            },
+            "required": [],
+            "title": "Input"
+        }
+    }
+}
