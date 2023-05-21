@@ -48,6 +48,8 @@ func (b *Banshee) Migrate() error {
 		if repoErr != nil {
 			return repoErr
 		}
+
+		b.log.Println("")
 	}
 	return nil
 }
@@ -82,8 +84,6 @@ func (b *Banshee) migrationOptions() (string, []string, error) {
 		if repos, searchQueryErr := b.GithubClient.GetMatchingRepos(query); searchQueryErr != nil {
 			return org, b.saveRepos(repos), searchQueryErr
 		}
-
-		b.log.Println("")
 	}
 
 	if b.MigrationConfig.AllReposInOrg {
