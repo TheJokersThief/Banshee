@@ -48,6 +48,8 @@ func (b *Banshee) Migrate() error {
 		if repoErr != nil {
 			return repoErr
 		}
+
+		b.log.Println("")
 	}
 	return nil
 }
@@ -163,7 +165,9 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 		}
 	}
 
-	log.Info("PR for ", repo, ": ", htmlURL)
+	if htmlURL != "" {
+		log.Info("PR for ", repo, ": \033[32m", htmlURL, "\033[0m")
+	}
 	return htmlURL, nil
 }
 

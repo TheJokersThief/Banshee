@@ -94,8 +94,8 @@ func (r *Replace) removeBlacklistedDirectories(matches []string) []string {
 
 func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, errors chan<- error) {
 	for file := range files {
-		content, _ := os.ReadFile(file)
-		if !strings.Contains(string(content), r.OldString) {
+		content, readErr := os.ReadFile(file)
+		if !strings.Contains(string(content), r.OldString) || readErr != nil {
 			continue
 		}
 
