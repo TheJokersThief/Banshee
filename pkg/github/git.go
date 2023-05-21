@@ -123,9 +123,9 @@ func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
 
 	pushErr := gitRepo.Push(
 		&git.PushOptions{
-			Progress:   gc.Writer,
 			RemoteName: "origin",
 			Auth:       gc.auth(),
+			// Force:      true,
 		},
 	)
 
