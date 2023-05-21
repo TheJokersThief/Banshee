@@ -8,6 +8,7 @@ import (
 
 	"github.com/avast/retry-go/v4"
 	"github.com/google/go-github/v52/github"
+	"github.com/sirupsen/logrus"
 )
 
 func (gc *GithubClient) FindPullRequest(org, repo, baseBranch, headBranch string) (*github.PullRequest, error) {
@@ -50,6 +51,7 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 		}
 	}
 
+	gc.log.WithField("AssignReviewers", gc.GlobalConfig.Options.AssignCodeReviewerIfNoneAssigned).Debug("Assigning reviewers, if enabled")
 	if gc.GlobalConfig.Options.AssignCodeReviewerIfNoneAssigned {
 		assignmentErr := gc.AssignDefaultReviewer(pr)
 		if assignmentErr != nil {
@@ -103,12 +105,14 @@ func (gc *GithubClient) AssignDefaultReviewer(pr *github.PullRequest) error {
 		return err
 	}
 
-	if len(reviewers.Teams) > 0 && len(reviewers.Users) > 0 {
+	gc.log.WithFields(logrus.Fields{"Teams": reviewers.Teams, "Users": reviewers.Users}).Debug("Checking for reviewers")
+	if !(len(reviewers.Teams) > 0 || len(reviewers.Users) > 0) {
 		// If there are no reviewers, assign some
 		reviewRequest := github.ReviewersRequest{
 			TeamReviewers: []string{gc.GlobalConfig.Defaults.CodeReviewer},
 		}
 
+		gc.log.Info("Assigning ", gc.GlobalConfig.Defaults.CodeReviewer, " as reviewers")
 		_, _, reviewerErr := gc.Client.PullRequests.RequestReviewers(gc.ctx, owner, repo, *pr.Number, reviewRequest)
 		if reviewerErr != nil {
 			return reviewerErr
