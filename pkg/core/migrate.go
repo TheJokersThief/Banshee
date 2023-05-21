@@ -82,6 +82,8 @@ func (b *Banshee) migrationOptions() (string, []string, error) {
 		if repos, searchQueryErr := b.GithubClient.GetMatchingRepos(query); searchQueryErr != nil {
 			return org, b.saveRepos(repos), searchQueryErr
 		}
+
+		b.log.Println("")
 	}
 
 	if b.MigrationConfig.AllReposInOrg {
@@ -163,7 +165,9 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 		}
 	}
 
-	log.Info("PR for ", repo, ": ", htmlURL)
+	if htmlURL != "" {
+		log.Info("PR for ", repo, ": \033[32m", htmlURL, "\033[0m")
+	}
 	return htmlURL, nil
 }
 
