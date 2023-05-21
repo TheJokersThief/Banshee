@@ -1,5 +1,7 @@
 ![](images/banshee.png)
 
+![](https://badgers.space/github/release/TheJokersThief/Banshee?scale=1.25)
+![](https://badgers.space/github/license/TheJokersThief/Banshee?scale=1.25)
 # Banshee
 
 A CLI for managing large-scale code changes across a GitHub organisation, and 
