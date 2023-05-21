@@ -44,6 +44,13 @@ options:
     enabled: false
     # Location for storing the repos cache
     directory: "repos.cache"
+  save_progress:
+    # If enabled, banshee will track your progress and resume from where you left off
+    enabled: true
+    # Location for storing progress files
+    directory: "repos.cache/_progress"
+    # The number of repos to process at a time (cloning/migrating) [-1 disables batching]
+    batch: -1
   merging:
     strategy: "merge" # "merge", "squash", "rebase"
     append_title: "[CI SKIP]" # A string to append to the merge commit message
@@ -51,7 +58,7 @@ options:
 
 ## Assigning code reviewers (`assign_code_reviewer_if_none_assigned`)
 
-If there are new reviewers assigned automatically via CODEOWNERS files, this will assign the [**team**](https://docs.github.com/en/organizations/organizing-members-into-teams/creating-a-team) you've chosen as a reviewer.
+If there are no new reviewers assigned automatically via CODEOWNERS files, this will assign the [**team**](https://docs.github.com/en/organizations/organizing-members-into-teams/creating-a-team) you've chosen as a reviewer.
 
 ## Show the output from git commands (`show_git_output`)
 
@@ -79,6 +86,12 @@ To github.com:TheJokersThief/Banshee.git
 Cloning every repo each time you want to perform a migration can be costly in network and time. To speed things up, you can choose to clone the repo once into the `directory` you choose. Then, when we need to run any migration in the future, it will first pull any new changes from the repo's default branch before running your actions.
 
 This is particularly appealing if your organisation has several monorepos with long git histories.
+
+## Saving progress (`save_progress`)
+
+We're expecting to run these migrations for thousands of repos, so saving progress allows us to stop and start migrations, run them in batches and recover easily from failures or unexpected changes.
+
+The progress files are serialised in JSON on purpose, instead of a binary format, to allow folks to edit them by hand if they need to. For example, if you want to rerun a migration on only a couple repos, you could change their migration status to false. Or if there's a failure for a repo you can't control, you can manually mark it as completed and deal with it later.
 
 ## Merge options (`merging`)
 
