@@ -90,6 +90,12 @@
                 "show_git_output": {
                     "type": "boolean"
                 },
+                "ignore_directories": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
                 "cache_repos": {
                     "$ref": "#/definitions/CacheRepos"
                 },

@@ -16,26 +16,32 @@ import (
 
 type Replace struct {
 	BaseDir   string
-	OldString string `fig:"old"`
-	NewString string `fig:"new"`
-	Glob      string `fig:"glob" default:"**"`
+	OldString string
+	NewString string
+	Glob      string
+
+	ignoreDirs []string
 }
 
 const threadCount = 10
 
-var blacklistedDirectories = []string{".git", ".idea"}
+var defaultDenylistedDirectories = []string{".git", ".idea"}
 
-func NewReplaceAction(dir string, description string, input map[string]string) *Replace {
+func NewReplaceAction(dir string, description string, input map[string]string, ignoreDirs []string) *Replace {
 	glob, hasSpecifiedGlob := input["glob"]
 	if !hasSpecifiedGlob {
 		glob = "**"
 	}
+
+	denyList := append(defaultDenylistedDirectories, ignoreDirs...)
 
 	return &Replace{
 		BaseDir:   dir,
 		OldString: input["old"],
 		NewString: input["new"],
 		Glob:      glob,
+
+		ignoreDirs: denyList,
 	}
 }
 
@@ -77,7 +83,7 @@ func (r *Replace) removeBlacklistedDirectories(matches []string) []string {
 	for _, match := range matches {
 
 		isAllowed := true
-		for _, item := range blacklistedDirectories {
+		for _, item := range r.ignoreDirs {
 			if strings.Contains(match, item) {
 				isAllowed = false
 				break

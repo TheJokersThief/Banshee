@@ -12,7 +12,7 @@ const defaultShell = "bash"
 
 type RunCommand struct {
 	BaseDir string
-	Command string `fig:"command"`
+	Command string
 }
 
 func NewRunCommandAction(dir string, description string, input map[string]string) *RunCommand {
