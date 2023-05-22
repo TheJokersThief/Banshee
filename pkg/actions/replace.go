@@ -33,7 +33,9 @@ func NewReplaceAction(dir string, description string, input map[string]string, i
 		glob = "**"
 	}
 
-	denyList := append(defaultDenylistedDirectories, ignoreDirs...)
+	denyList := []string{}
+	denyList = append(denyList, defaultDenylistedDirectories...)
+	denyList = append(denyList, ignoreDirs...)
 
 	return &Replace{
 		BaseDir:   dir,
