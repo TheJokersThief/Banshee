@@ -14,7 +14,7 @@ require (
 	github.com/icholy/replace v0.6.0
 	github.com/kkyr/fig v0.3.1
 	github.com/sirupsen/logrus v1.9.2
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.3
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/oauth2 v0.8.0
 )
