@@ -5,21 +5,14 @@ import (
 	"fmt"
 
 	"github.com/sirupsen/logrus"
+	"github.com/thejokersthief/banshee/pkg/configs"
 )
 
 type ActionRunner interface {
 	Run(log *logrus.Entry) error
 }
 
-type Action struct {
-	Directory string
-
-	Description string            `fig:"description"`
-	Action      string            `fig:"action"`
-	Input       map[string]string `fig:"input"`
-}
-
-func RunAction(log *logrus.Entry, actionID string, dir string, description string, input map[string]string) error {
+func RunAction(log *logrus.Entry, globalConfig *configs.GlobalConfig, actionID string, dir string, description string, input map[string]string) error {
 	var action ActionRunner
 
 	actionLog := log.WithField("action", actionID)
@@ -28,7 +21,7 @@ func RunAction(log *logrus.Entry, actionID string, dir string, description strin
 	case "add_file":
 		action = NewAddFileAction(dir, description, input)
 	case "replace":
-		action = NewReplaceAction(dir, description, input)
+		action = NewReplaceAction(dir, description, input, globalConfig.Options.IgnoreDirectories)
 	case "run_command":
 		action = NewRunCommandAction(dir, description, input)
 	default:

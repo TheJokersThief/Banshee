@@ -122,7 +122,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 
 	changelog := []string{}
 	for _, action := range b.MigrationConfig.Actions {
-		actionErr := actions.RunAction(log, action.Action, dir, action.Description, action.Input)
+		actionErr := actions.RunAction(log, b.GlobalConfig, action.Action, dir, action.Description, action.Input)
 		if actionErr != nil {
 			return "", actionErr
 		}

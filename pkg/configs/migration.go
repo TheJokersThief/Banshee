@@ -1,9 +1,13 @@
 // Config for each code change
 package configs
 
-import (
-	"github.com/thejokersthief/banshee/pkg/actions"
-)
+type Action struct {
+	Directory string
+
+	Description string            `fig:"description"`
+	Action      string            `fig:"action"`
+	Input       map[string]string `fig:"input"`
+}
 
 type MigrationConfig struct {
 	BranchName    string   `fig:"branch_name"`
@@ -12,7 +16,7 @@ type MigrationConfig struct {
 	ListOfRepos   []string `fig:"repos"`
 	AllReposInOrg bool     `fig:"all_repos_in_org"`
 
-	Actions []actions.Action `fig:"actions"`
+	Actions []Action `fig:"actions"`
 
 	PRTitle    string `fig:"pr_title"`
 	PRBodyFile string `fig:"pr_body_file"`

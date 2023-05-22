@@ -14,6 +14,11 @@ options:
   assign_code_reviewer_if_none_assigned: false
   # Show the output from all git actions (e.g. clones, pulls and fetches)
   show_git_output: false
+
+  # These directories won't be traversed for find-and-replace actions
+  ignore_directories:
+    - vendor
+
   cache_repos:
     # If enabled, will store all downloaded repos permanently
     enabled: false
