@@ -25,11 +25,13 @@ func (b *Banshee) MergeApproved() error {
 	}
 
 	for _, pr := range prList {
-		b.log.Debug("Checking if ", *pr.HTMLURL, " is mergeable")
-		if *pr.MergeableState == "mergeable" {
-			b.log.Info("Merging", *pr.HTMLURL)
+		b.log.WithField("mergeable", *pr.MergeableState).Debug("Checking if ", *pr.HTMLURL, " is mergeable")
+		if *pr.MergeableState == "clean" {
+			b.log.Info("Merging ", *pr.HTMLURL)
 			mergeErr := b.GithubClient.MergePullRequest(pr)
-			return mergeErr
+			if mergeErr != nil {
+				return mergeErr
+			}
 		}
 	}
 
