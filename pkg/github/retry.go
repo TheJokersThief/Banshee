@@ -13,8 +13,8 @@ var (
 	defaultRetryOptions = []retry.Option{
 		retry.Delay(5 * time.Second),
 		retry.MaxJitter(3 * time.Second),
-		retry.Attempts(3),
-		retry.MaxDelay(time.Second * 10),
+		retry.Attempts(10),
+		retry.MaxDelay(time.Second * 30),
 		retry.LastErrorOnly(true),
 	}
 )

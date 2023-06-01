@@ -56,8 +56,10 @@ func (r *Replace) Run(log *logrus.Entry) error {
 		go r.findAndReplaceWorker(log, files, errChan)
 	}
 
-	matches, err := filepathx.Glob(r.BaseDir + "/" + r.Glob)
+	globPattern := r.BaseDir + "/" + r.Glob
+	matches, err := filepathx.Glob(globPattern)
 	if err != nil {
+		logrus.WithField("pattern", globPattern).Error("Error globbing file path: ", err)
 		return err
 	}
 	matches = r.removeBlacklistedDirectories(matches)
@@ -100,7 +102,7 @@ func (r *Replace) removeBlacklistedDirectories(matches []string) []string {
 	return newMatches
 }
 
-func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, errors chan<- error) {
+func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, errChan chan<- error) {
 	for file := range files {
 		content, readErr := os.ReadFile(file)
 		if !strings.Contains(string(content), r.OldString) || readErr != nil {
@@ -111,14 +113,14 @@ func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, e
 
 		f, err := os.Open(file)
 		if err != nil {
-			errors <- err
+			errChan <- errors.New("couldn't open file: " + err.Error())
 			continue
 		}
 
 		// create temp file
 		tmp, err := os.CreateTemp(os.TempDir(), "replace-*")
 		if err != nil {
-			errors <- err
+			errChan <- errors.New("couldn't create temporary file: " + err.Error())
 			continue
 		}
 
@@ -128,25 +130,25 @@ func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, e
 
 		_, err = io.Copy(tmp, reader)
 		if err != nil {
-			errors <- err
+			errChan <- errors.New("couldn't copy file: " + err.Error())
 			continue
 		}
 
 		// make sure the tmp file was successfully written to
 		if err := tmp.Close(); err != nil {
-			errors <- err
+			errChan <- errors.New("couldn't close file: " + err.Error())
 			continue
 		}
 
 		// close the file we're reading from
 		if err := f.Close(); err != nil {
-			errors <- err
+			errChan <- err
 			continue
 		}
 
 		// overwrite the original file with the temp file
 		if err := os.Rename(tmp.Name(), file); err != nil {
-			errors <- err
+			errChan <- errors.New("couldn't rename file: " + err.Error())
 			continue
 		}
 	}
