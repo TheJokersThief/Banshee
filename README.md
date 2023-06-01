@@ -80,7 +80,7 @@ This assumes that you block merge to mainline branches with branch protections l
 "requires a PR", "required approvers: 1", "required status checks" and that they're 
 not handled on the honour system.
 
-This just checks the GitHub [MergeableState](https://docs.github.com/en/graphql/reference/enums#mergeablestate) 
+This just checks the GitHub "mergeable state" is "clean" (terms determined by GitHub)  
 to see if the PR can be merged.
 
 ```bash
