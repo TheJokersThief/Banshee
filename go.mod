@@ -7,7 +7,7 @@ require (
 	github.com/avast/retry-go/v4 v4.3.4
 	github.com/bradleyfalzon/ghinstallation/v2 v2.4.0
 	github.com/charmbracelet/lipgloss v0.7.1
-	github.com/go-git/go-git/v5 v5.6.2-0.20230515192228-4ff2213cc542
+	github.com/go-git/go-git/v5 v5.7.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v52 v52.0.0
 	github.com/gosimple/slug v1.13.1
@@ -21,7 +21,7 @@ require (
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
-	github.com/ProtonMail/go-crypto v0.0.0-20230417170513-8ee5748c52b5 // indirect
+	github.com/ProtonMail/go-crypto v0.0.0-20230518184743-7afd39499903 // indirect
 	github.com/acomagu/bufpipe v1.0.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
@@ -51,9 +51,9 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/sergi/go-diff v1.1.0 // indirect
-	github.com/skeema/knownhosts v1.1.0 // indirect
+	github.com/skeema/knownhosts v1.1.1 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
-	golang.org/x/crypto v0.8.0 // indirect
+	golang.org/x/crypto v0.9.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect

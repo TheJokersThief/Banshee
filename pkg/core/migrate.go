@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -136,7 +137,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 			// if dirty, commit with action.Description as message
 			addErr := tree.AddGlob("./")
 			if addErr != nil {
-				return "", addErr
+				return "", errors.New("adding error: " + addErr.Error())
 			}
 
 			_, commitErr := tree.Commit(action.Description, &git.CommitOptions{

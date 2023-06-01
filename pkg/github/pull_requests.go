@@ -44,7 +44,7 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 		var errResponse *github.ErrorResponse
 		ghErr := errors.As(err, &errResponse)
 		if ghErr {
-			if strings.Contains(errResponse.Errors[0].Message, "No commits between") {
+			if len(errResponse.Errors) > 0 && strings.Contains(errResponse.Errors[0].Message, "No commits between") {
 				return "", nil
 			}
 			return "", err
