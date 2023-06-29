@@ -82,9 +82,8 @@ func (b *Banshee) migrationOptions() (string, []string, error) {
 			query = fmt.Sprintf("org:%s %s", org, b.MigrationConfig.SearchQuery)
 		}
 
-		if repos, searchQueryErr := b.GithubClient.GetMatchingRepos(query); searchQueryErr != nil {
-			return org, b.saveRepos(repos), searchQueryErr
-		}
+		repos, searchQueryErr := b.GithubClient.GetMatchingRepos(query)
+		return org, b.saveRepos(repos), searchQueryErr
 	}
 
 	if b.MigrationConfig.AllReposInOrg {
