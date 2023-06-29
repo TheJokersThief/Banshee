@@ -42,14 +42,11 @@
             },
             "required": [
                 "actions",
-                "all_repos_in_org",
                 "branch_name",
                 "organisation",
                 "pr_as_drafts",
                 "pr_body_file",
-                "pr_title",
-                "repos",
-                "search_query"
+                "pr_title"
             ],
             "title": "MigrationConfig"
         },

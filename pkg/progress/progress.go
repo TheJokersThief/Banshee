@@ -55,19 +55,19 @@ func (p *Progress) GetRepos() []string {
 	return repos
 }
 
-func (p *Progress) progressFile() string {
+func (p *Progress) ProgressFile() string {
 	return path.Join(p.Dir, p.ID+".json")
 }
 
 func (p *Progress) loadProgress() error {
-	if _, err := os.Stat(p.progressFile()); errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(p.ProgressFile()); errors.Is(err, os.ErrNotExist) {
 		// If the file doesn't exist, that's okay - we'll write it
-		p.log.Info("Didn't find any progress file at ", p.progressFile(), ". Creating new one...")
+		p.log.Info("Didn't find any progress file at ", p.ProgressFile(), ". Creating new one...")
 		p.Config = &configs.ProgressConfig{Repos: make(map[string]*configs.RepoProgress)}
 		return p.writeProgress()
 	}
 
-	data, readErr := os.ReadFile(p.progressFile())
+	data, readErr := os.ReadFile(p.ProgressFile())
 	if readErr != nil {
 		return readErr
 	}
@@ -82,14 +82,14 @@ func (p *Progress) loadProgress() error {
 }
 
 func (p *Progress) writeProgress() error {
-	p.log.Debug("Writing progress to ", p.progressFile())
+	p.log.Debug("Writing progress to ", p.ProgressFile())
 	p.Config.LastUpdated = p.hrTimestamp()
 	jsonStr, jsonErr := json.Marshal(p.Config)
 	if jsonErr != nil {
 		return jsonErr
 	}
 
-	writeErr := os.WriteFile(p.progressFile(), jsonStr, 0666)
+	writeErr := os.WriteFile(p.ProgressFile(), jsonStr, 0666)
 	if writeErr != nil {
 		return writeErr
 	}
