@@ -39,6 +39,10 @@ func (b *Banshee) Migrate() error {
 		}
 	}
 
+	if len(repos) == 0 {
+		return fmt.Errorf("Found no repos for migration. Maybe you need to check the progress file? %s", b.Progress.ProgressFile())
+	}
+
 	for _, repo := range repos {
 		// Check if repo is of the form <org>/<repo>
 		if !strings.Contains(repo, "/") {
