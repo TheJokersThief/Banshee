@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/alecthomas/kong v0.8.0
 	github.com/avast/retry-go/v4 v4.3.4
-	github.com/bradleyfalzon/ghinstallation/v2 v2.5.0
+	github.com/bradleyfalzon/ghinstallation/v2 v2.6.0
 	github.com/charmbracelet/lipgloss v0.7.1
 	github.com/go-git/go-git/v5 v5.7.0
 	github.com/google/go-github v17.0.0+incompatible
@@ -32,7 +32,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/google/go-github/v53 v53.0.0 // indirect
+	github.com/google/go-github/v53 v53.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/imdario/mergo v0.3.15 // indirect
