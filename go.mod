@@ -12,7 +12,7 @@ require (
 	github.com/google/go-github/v52 v52.0.0
 	github.com/gosimple/slug v1.13.1
 	github.com/icholy/replace v0.6.0
-	github.com/kkyr/fig v0.3.1
+	github.com/kkyr/fig v0.3.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	github.com/yargevad/filepathx v1.0.0

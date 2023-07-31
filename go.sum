@@ -76,8 +76,8 @@ github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 h1:BQSFePA1RWJOl
 github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99/go.mod h1:1lJo3i6rXxKeerYnT8Nvf0QmHCRC1n8sfWVwXF2Frvo=
 github.com/kevinburke/ssh_config v1.2.0 h1:x584FjTGwHzMwvHx18PXxbBVzfnxogHaAReU4gf13a4=
 github.com/kevinburke/ssh_config v1.2.0/go.mod h1:CT57kijsi8u/K/BOFA39wgDQJ9CxiF4nAY/ojJ6r6mM=
-github.com/kkyr/fig v0.3.1 h1:GqsamO9dwY05t2xh6ubzjPPYw2It4hoWbKZEWmDxM0o=
-github.com/kkyr/fig v0.3.1/go.mod h1:ItUILF8IIzgZOMhx5xpJ1W/bviQsWRKOwKXfE/tqUoA=
+github.com/kkyr/fig v0.3.2 h1:+vMj52FL6RJUxeKOBB6JXIMyyi1/2j1ERDrZXjoBjzM=
+github.com/kkyr/fig v0.3.2/go.mod h1:ItUILF8IIzgZOMhx5xpJ1W/bviQsWRKOwKXfE/tqUoA=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.0 h1:WgNl7dwNpEZ6jJ9k1snq4pZsg7DOEN8hP9Xw0Tsjwk0=
