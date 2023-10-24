@@ -3,7 +3,7 @@ module github.com/thejokersthief/banshee
 go 1.20
 
 require (
-	github.com/alecthomas/kong v0.8.0
+	github.com/alecthomas/kong v0.8.1
 	github.com/avast/retry-go/v4 v4.5.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.7.0
 	github.com/charmbracelet/lipgloss v0.8.0
