@@ -7,7 +7,7 @@ require (
 	github.com/avast/retry-go/v4 v4.5.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.8.0
 	github.com/charmbracelet/lipgloss v0.9.1
-	github.com/go-git/go-git/v5 v5.9.0
+	github.com/go-git/go-git/v5 v5.10.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v52 v52.0.0
 	github.com/gosimple/slug v1.13.1
