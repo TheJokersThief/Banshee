@@ -33,7 +33,6 @@ func (b *Banshee) Migrate() error {
 	}
 
 	if b.Progress != nil {
-		// This call wipes out a list of supplied repos as The non migrated repos hasn't been instantiated
 		repos = b.Progress.GetReposNotMigrated()
 		if (b.GlobalConfig.Options.SaveProgress.Batch) > 0 {
 			repos = repos[:b.GlobalConfig.Options.SaveProgress.Batch]
