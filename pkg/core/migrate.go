@@ -259,7 +259,6 @@ func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, *git.R
 		dir, mkDirErr = os.MkdirTemp(os.TempDir(), strings.ReplaceAll(repo, "/", "-"))
 	}
 	if mkDirErr != nil {
-		print(":()")
 		return "", nil, "", mkDirErr
 	}
 
