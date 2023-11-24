@@ -77,7 +77,8 @@ func (b *Banshee) migrationOptions() (string, []string, error) {
 	}
 
 	if len(b.MigrationConfig.ListOfRepos) > 0 {
-		return org, b.MigrationConfig.ListOfRepos, nil
+		rslt := b.saveRepos(b.MigrationConfig.ListOfRepos)
+		return org, rslt, nil
 	}
 
 	if b.MigrationConfig.SearchQuery != "" {
@@ -87,19 +88,28 @@ func (b *Banshee) migrationOptions() (string, []string, error) {
 		}
 
 		repos, searchQueryErr := b.GithubClient.GetMatchingRepos(query)
-		return org, b.saveRepos(repos), searchQueryErr
+		if b.Progress != nil && len(b.Progress.Config.Repos) == 0 {
+			b.Progress.AddRepos(repos)
+		}
+		rslt := b.saveRepos(repos)
+		return org, rslt, searchQueryErr
 	}
 
 	if b.MigrationConfig.AllReposInOrg {
 		allRepos, allReposErr := b.GithubClient.GetAllRepos(org)
-		return org, b.saveRepos(allRepos), allReposErr
+		if b.Progress != nil && len(b.Progress.Config.Repos) == 0 {
+			b.Progress.AddRepos(allRepos)
+		}
+		rslt := b.saveRepos(allRepos)
+		return org, rslt, allReposErr
 	}
-
-	return org, []string{}, nil
+	rslt := b.saveRepos(b.MigrationConfig.ListOfRepos)
+	return org, rslt, nil
 }
 
 func (b *Banshee) saveRepos(repos []string) []string {
 	if b.Progress != nil {
+		b.log.Debugf("Adding %d repos", len(repos))
 		b.Progress.AddRepos(repos)
 	}
 	return repos
