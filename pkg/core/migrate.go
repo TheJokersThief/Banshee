@@ -165,7 +165,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 			if commitErr != nil {
 				return "", commitErr
 			}
-			
+
 			commitMade = true
 		}
 	}
