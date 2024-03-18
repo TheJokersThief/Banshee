@@ -4,7 +4,12 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+    groups:
+       # Specify a name for the group, which will be used in pull request titles
+       # and branch names
+       all-dependencies:
+          patterns:
+            - "*"
 
   - package-ecosystem: "docker"
     directory: "/"
