@@ -135,6 +135,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 	}
 
 	changelog := []string{}
+	commitMade := false // Track whether any commits are made as actions run
 	for _, action := range b.MigrationConfig.Actions {
 		actionErr := actions.RunAction(log, b.GlobalConfig, action.Action, dir, action.Description, action.Input)
 		if actionErr != nil {
@@ -164,7 +165,14 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 			if commitErr != nil {
 				return "", commitErr
 			}
+			
+			commitMade = true
 		}
+	}
+
+	if !commitMade {
+		log.Info("No changes made for ", repo)
+		return "", nil
 	}
 
 	htmlURL, err := b.pushChanges(changelog, gitRepo, org, repoNameOnly, defaultBranch)
@@ -185,7 +193,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 	return htmlURL, nil
 }
 
-// Push changes to aGitHub nd create a Pull Request
+// Push changes to GitHub and create a Pull Request
 func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, repoName, defaultBranch string) (string, error) {
 	pushError := b.GithubClient.Push(b.MigrationConfig.BranchName, gitRepo)
 	if pushError != nil {
