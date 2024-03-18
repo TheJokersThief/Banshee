@@ -10,7 +10,7 @@ local tag_filter = workflows.filter_tags(only=['/v.*/']) + workflows.filter_bran
 local branches_filter = workflows.filter_branches(only=['/.*/']) + workflows.filter_tags(ignore=['/.*/']);
 
 local homedir = '/home/circleci/banshee';
-local gover = '1.20';
+local gover = '1.21';
 
 
 pipeline.new(
