@@ -6,7 +6,7 @@ toolchain go1.21.4
 
 require (
 	github.com/alecthomas/kong v0.9.0
-	github.com/avast/retry-go/v4 v4.5.1
+	github.com/avast/retry-go/v4 v4.6.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.10.0
 	github.com/charmbracelet/lipgloss v0.10.0
 	github.com/go-git/go-git/v5 v5.12.0
@@ -18,7 +18,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
 	github.com/yargevad/filepathx v1.0.0
-	golang.org/x/oauth2 v0.19.0
+	golang.org/x/oauth2 v0.20.0
 )
 
 require (
