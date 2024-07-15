@@ -8,7 +8,7 @@ require (
 	github.com/alecthomas/kong v0.9.0
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
-	github.com/charmbracelet/lipgloss v0.11.0
+	github.com/charmbracelet/lipgloss v0.12.1
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v52 v52.0.0
@@ -26,7 +26,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v1.0.0 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/charmbracelet/x/ansi v0.1.1 // indirect
+	github.com/charmbracelet/x/ansi v0.1.4 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
