@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/avast/retry-go/v4"
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v63/github"
 	"github.com/sirupsen/logrus"
 )
 

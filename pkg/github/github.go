@@ -14,7 +14,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v63/github"
 	"github.com/sirupsen/logrus"
 	"github.com/thejokersthief/banshee/pkg/configs"
 	"golang.org/x/oauth2"
@@ -32,8 +32,8 @@ type GithubClient struct {
 }
 
 var (
-	AppConfigMissing   = errors.New("Config missing for AppID, InstallationID or PrivateKeyPath")
-	TokenConfigMissing = errors.New("Config missing for GitHub Token")
+	errAppConfigMissing   = errors.New("config missing for AppID, InstallationID or PrivateKeyPath")
+	errTokenConfigMissing = errors.New("config missing for GitHub Token")
 )
 
 // Build a new GitHub client using the global config
@@ -63,7 +63,7 @@ func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context, log *
 func newGithubTokenClient(globalConf configs.GlobalConfig, ghClient *GithubClient) (*GithubClient, error) {
 	configMissing := (globalConf.Github.Token == "")
 	if configMissing {
-		return nil, TokenConfigMissing
+		return nil, errTokenConfigMissing
 	}
 
 	ctx := context.Background()
@@ -84,7 +84,7 @@ func newGithubAppClient(globalConf configs.GlobalConfig, ghClient *GithubClient,
 		globalConf.Github.AppInstallationID == 0 ||
 		globalConf.Github.AppPrivateKeyPath == "")
 	if configMissing {
-		return nil, AppConfigMissing
+		return nil, errAppConfigMissing
 	}
 
 	itr, err := ghinstallation.NewKeyFromFile(

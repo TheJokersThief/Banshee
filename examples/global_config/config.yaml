@@ -13,7 +13,7 @@ options:
   # Assign a team to review code if no reviewers are already assigned by a CODEOWNERS file
   assign_code_reviewer_if_none_assigned: false
   # Show the output from all git actions (e.g. clones, pulls and fetches)
-  show_git_output: false
+  show_git_output: true
 
   # These directories won't be traversed for find-and-replace actions
   ignore_directories:

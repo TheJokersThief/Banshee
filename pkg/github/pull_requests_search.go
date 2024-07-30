@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/avast/retry-go/v4"
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v63/github"
 )
 
 func (gc *GithubClient) GetMatchingPRs(query string) ([]*github.PullRequest, error) {

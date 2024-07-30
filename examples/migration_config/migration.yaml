@@ -8,7 +8,7 @@ search_query: "reference-to-old.url"
 # all_repos_in_org: true
 # repos:
 #   - example-org/example-repo
-#   - no-org-repo
+#   - example-org/no-org-repo
 
 organisation: "example-org"
 branch_name: "example/branch/name"

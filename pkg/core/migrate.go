@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/google/go-github/v52/github"
+	"github.com/google/go-github/v63/github"
 	"github.com/sirupsen/logrus"
 	"github.com/thejokersthief/banshee/pkg/actions"
 )
