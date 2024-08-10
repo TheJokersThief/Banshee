@@ -142,6 +142,8 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 			return "", actionErr
 		}
 
+		// Wait for half a second to let the git working tree catch up with changes
+		time.Sleep(500 * time.Millisecond)
 		tree, _ := gitRepo.Worktree()
 		state, _ := tree.Status()
 		// check if git dirty

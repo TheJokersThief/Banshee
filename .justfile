@@ -27,6 +27,8 @@ publish:
 
 # Run a migration using the test config migration.test.yaml
 example_migration: _check_test_conf_exists
+    rm -r repos.cache/*
+    mkdir -p repos.cache/_progress
     go run cmd/banshee/main.go migrate examples/migration_config/migration.test.yaml \
         --config examples/global_config/config.test.yaml
 
