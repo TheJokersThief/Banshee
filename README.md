@@ -20,6 +20,15 @@ required to get them applied.
 
 # Install
 
+```bash
+export ARCH="darwin-arm64"
+# export ARCH="darwin-amd64"
+# export ARCH="linux-amd64"
+curl -o banshee -L "https://github.com/TheJokersThief/Banshee/releases/latest/download/banshee-${ARCH}"
+chmod +x banshee
+sudo mv banshee /usr/local/bin/
+```
+
 
 # Usage
 
