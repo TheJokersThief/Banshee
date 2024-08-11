@@ -7,5 +7,11 @@ func (b *Banshee) CreateCacheRepoIfEnabled() error {
 		}
 	}
 
+	if b.GlobalConfig.Options.SaveProgress.Enabled {
+		if cacheErr := b.createCacheRepo(b.log, b.GlobalConfig.Options.SaveProgress.Directory); cacheErr != nil {
+			return cacheErr
+		}
+	}
+
 	return nil
 }
