@@ -86,6 +86,7 @@ func (b *Banshee) migrationOptions() (string, []string, error) {
 		if !strings.Contains(b.MigrationConfig.SearchQuery, "org:") {
 			query = fmt.Sprintf("org:%s %s", org, b.MigrationConfig.SearchQuery)
 		}
+		b.log.Debug("Searching code for repos with query: ", query)
 
 		repos, searchQueryErr := b.GithubClient.GetMatchingRepos(query)
 		if b.Progress != nil && len(b.Progress.Config.Repos) == 0 {
