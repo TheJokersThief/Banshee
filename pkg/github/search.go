@@ -28,7 +28,10 @@ func (gc *GithubClient) GetAllRepos(owner string) ([]string, error) {
 		}
 
 		for _, result := range searchResult {
-			repos = append(repos, *result.FullName)
+			// Ignored archived repos
+			if !*result.Archived {
+				repos = append(repos, *result.FullName)
+			}
 		}
 		if resp.NextPage == 0 {
 			break
@@ -64,7 +67,10 @@ func (gc *GithubClient) GetMatchingRepos(query string) ([]string, error) {
 		}
 
 		for _, result := range searchResult.CodeResults {
-			repos = append(repos, *result.Repository.FullName)
+			// Ignored archived repos
+			if !*result.Repository.Archived {
+				repos = append(repos, *result.Repository.FullName)
+			}
 		}
 		if resp.NextPage == 0 {
 			break
