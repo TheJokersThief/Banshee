@@ -30,7 +30,7 @@ func (r *RunCommand) Run(log *logrus.Entry) error {
 	cmd.Stderr = log.WriterLevel(logrus.ErrorLevel)
 	cmd.Dir = r.BaseDir
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("Failed running `%s`: %w", r.Command, err)
+		return fmt.Errorf("failed running `%s`: %w", r.Command, err)
 	}
 
 	return nil

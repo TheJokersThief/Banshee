@@ -24,8 +24,10 @@ func RunAction(log *logrus.Entry, globalConfig *configs.GlobalConfig, actionID s
 		action = NewReplaceAction(dir, description, input, globalConfig.Options.IgnoreDirectories)
 	case "run_command":
 		action = NewRunCommandAction(dir, description, input)
+	case "yaml":
+		action = NewYAMLAction(dir, description, input)
 	default:
-		return fmt.Errorf("Unrecognised command: %s", actionID)
+		return fmt.Errorf("unrecognised command: %s", actionID)
 	}
 
 	return action.Run(actionLog)
