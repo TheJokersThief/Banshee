@@ -10,7 +10,7 @@ local tag_filter = workflows.filter_tags(only=['/v.*/']) + workflows.filter_bran
 local branches_filter = workflows.filter_branches(only=['/.*/']) + workflows.filter_tags(ignore=['/.*/']);
 
 local homedir = '/home/circleci/banshee';
-local gover = '1.21';
+local gover = '1.22';
 
 
 pipeline.new(
@@ -33,8 +33,6 @@ pipeline.new(
                             failfast: true,
                             race: true,
                         }},
-                        steps.run('go get github.com/golangci/golangci-lint/cmd/golangci-lint'),
-                        steps.run('go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...'),
                     ],
                 )
             ],

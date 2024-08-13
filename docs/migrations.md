@@ -5,8 +5,9 @@
 
 - [Overview](#overview)
 - [Actions](#actions)
-    - [Find and replace](#find-and-replace)
-    - [Run commands](#run-commands)
+  - [Find and replace](#find-and-replace)
+  - [Run commands](#run-commands)
+  - [YAML](#yaml)
 
 <!-- /TOC -->
 
@@ -28,11 +29,11 @@ Any field with a default of `-` is a required field.
 
 ## Find and replace
 
-|  Key 	| Description                                         	| Default 	|
-|-----:	|-----------------------------------------------------	|---------	|
-|  old 	| Old string to be replaced                           	| –       	|
-|  new 	| New string to replace it with                       	| –       	|
-| glob 	| The glob pattern for file matching the replacements 	| "**"    	|
+|  Key | Description                                         | Default |
+| ---: | --------------------------------------------------- | ------- |
+|  old | Old string to be replaced                           | –       |
+|  new | New string to replace it with                       | –       |
+| glob | The glob pattern for file matching the replacements | "**"    |
 
 
 ```yaml
@@ -46,13 +47,54 @@ Any field with a default of `-` is a required field.
 
 ## Run commands 
 
-|     Key 	| Description                                                                                     	| Default 	|
-|--------:	|-------------------------------------------------------------------------------------------------	|---------	|
-| command 	| The command to be run. This command is passed to a bash shell, so it should be bash compatible. 	| –       	|
+|     Key | Description                                                                                     | Default |
+| ------: | ----------------------------------------------------------------------------------------------- | ------- |
+| command | The command to be run. This command is passed to a bash shell, so it should be bash compatible. | –       |
 
 ```yaml
 - action: run_command
   description: "Example command run"
   input: 
     command: "echo 'Test' > test.txt"
+```
+
+## YAML
+
+A helper for making YAML file changes.
+
+|        Key | Description                                                         | Default |
+| ---------: | ------------------------------------------------------------------- | ------- |
+|       glob | The glob pattern for file matching the replacements                 | –       |
+|   yamlpath | A dot notation path to the key being updated/added/deleted          | –       |
+| sub_action | The YAML action being performed (replace, add, delete, list_append) | –       |
+|      value | The value to be added                                               | –       |
+
+```yaml
+- action: yaml
+  description: "Change a YAML file"
+  input: 
+    glob: "example.yaml"
+    sub_action: replace
+    yamlpath: "firstlevel.secondlevel"
+    value: "new value"
+- action: yaml
+  description: "Change a YAML file"
+  input: 
+    glob: "example.yaml"
+    sub_action: add
+    yamlpath: "firstlevel.secondlevel"
+    value: "new value"
+- action: yaml
+  description: "Change a YAML file"
+  input: 
+    glob: "example.yaml"
+    sub_action: delete
+    yamlpath: "firstlevel.secondlevel"
+- action: yaml
+  description: "Change a YAML file"
+  input: 
+    glob: "example.yaml"
+    sub_action: list_append
+    yamlpath: "firstlevel.secondlevel"
+    value: "new item"
 ```

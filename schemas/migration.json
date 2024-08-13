@@ -61,7 +61,17 @@
                     "type": "string"
                 },
                 "input": {
-                    "$ref": "#/definitions/Input"
+                    "oneOf": [
+                        {
+                            "$ref": "#/definitions/ReplaceInput"
+                        },
+                        {
+                            "$ref": "#/definitions/RunCommandInput"
+                        },
+                        {
+                            "$ref": "#/definitions/YAMLInput"
+                        }
+                    ]
                 }
             },
             "required": [
@@ -71,7 +81,7 @@
             ],
             "title": "Action"
         },
-        "Input": {
+        "ReplaceInput": {
             "type": "object",
             "additionalProperties": false,
             "properties": {
@@ -81,12 +91,43 @@
                 "new": {
                     "type": "string"
                 },
+                "glob": {
+                    "type": "string"
+                }
+            },
+            "required": ["old", "new"],
+            "title": "ReplaceInput"
+        },
+        "RunCommandInput": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
                 "command": {
                     "type": "string"
                 }
             },
-            "required": [],
-            "title": "Input"
+            "required": ["command"],
+            "title": "RunCommandInput"
+        },
+        "YAMLInput": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "glob": {
+                    "type": "string"
+                },
+                "sub_action": {
+                    "type": "string"
+                },
+                "yamlpath": {
+                    "type": "string"
+                },
+                "value": {
+                    "type": "string"
+                }
+            },
+            "required": ["glob", "sub_action", "yamlpath"],
+            "title": "YAMLInput"
         }
     }
 }

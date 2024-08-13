@@ -17,12 +17,40 @@ actions:
   - action: replace
     description: "This is an example of a replacement"
     input:
+      glob: "*.md" # Default is "**" for every file
       old: example string to replace
       new: this string is going to be better
   - action: run_command
     description: "Example command run"
     input: 
       command: "echo 'Test' > test.txt"
+  - action: yaml
+    description: "Change a YAML file"
+    input: 
+      glob: "example.yaml"
+      sub_action: replace
+      yamlpath: "firstlevel.secondlevel"
+      value: "new value"
+  - action: yaml
+    description: "Change a YAML file"
+    input: 
+      glob: "example.yaml"
+      sub_action: add
+      yamlpath: "firstlevel.secondlevel"
+      value: "new value"
+  - action: yaml
+    description: "Change a YAML file"
+    input: 
+      glob: "example.yaml"
+      sub_action: delete
+      yamlpath: "firstlevel.secondlevel"
+  - action: yaml
+    description: "Change a YAML file"
+    input: 
+      glob: "example.yaml"
+      sub_action: list_append
+      yamlpath: "firstlevel.secondlevel"
+      value: "new item"
 
 pr_title: "An example PR title"
 pr_body_file: "examples/prbody.md"
