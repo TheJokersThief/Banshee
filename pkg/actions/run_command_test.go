@@ -6,13 +6,15 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
+	"github.com/thejokersthief/banshee/pkg/configs"
 )
 
 func TestRunCommand_Run(t *testing.T) {
 	// Create a new RunCommand instance
 	rc := &RunCommand{
-		Command: "echo 'Hello, World!'",
-		BaseDir: "./",
+		Command:      "echo 'Hello, World!'",
+		BaseDir:      "./",
+		GlobalConfig: &configs.GlobalConfig{MigrationDir: "/tmp"},
 	}
 
 	// Create a buffer to capture the command output
