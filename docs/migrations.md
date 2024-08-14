@@ -51,6 +51,13 @@ Any field with a default of `-` is a required field.
 | ------: | ----------------------------------------------------------------------------------------------- | ------- |
 | command | The command to be run. This command is passed to a bash shell, so it should be bash compatible. | –       |
 
+
+The environment from the execution environment is forwarded to the run command. There are also some added helper variables:
+
+|           Var | Description                               |
+| ------------: | ----------------------------------------- |
+| MIGRATION_DIR | The directory of the migration YAML file. |
+
 ```yaml
 - action: run_command
   description: "Example command run"

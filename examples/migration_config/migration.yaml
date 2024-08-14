@@ -23,7 +23,7 @@ actions:
   - action: run_command
     description: "Example command run"
     input: 
-      command: "echo 'Test' > test.txt"
+      command: "echo 'Test' > ${MIGRATION_DIR}/test.txt"
   - action: yaml
     description: "Change a YAML file"
     input: 
