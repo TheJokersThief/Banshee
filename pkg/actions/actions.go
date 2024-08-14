@@ -23,7 +23,7 @@ func RunAction(log *logrus.Entry, globalConfig *configs.GlobalConfig, actionID s
 	case "replace":
 		action = NewReplaceAction(dir, description, input, globalConfig.Options.IgnoreDirectories)
 	case "run_command":
-		action = NewRunCommandAction(dir, description, input)
+		action = NewRunCommandAction(dir, description, input, globalConfig)
 	case "yaml":
 		action = NewYAMLAction(dir, description, input)
 	default:

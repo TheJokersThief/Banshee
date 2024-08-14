@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 
 	"github.com/alecthomas/kong"
 	"github.com/charmbracelet/lipgloss"
@@ -93,6 +94,11 @@ func parseConfig[C configs.Configs](conf C, file string, envKey string) C {
 func createBanshee(globalConfig configs.GlobalConfig, migrationConfigPath string) *core.Banshee {
 	var migrationConfig configs.MigrationConfig
 	migrationConfig = parseConfig(migrationConfig, migrationConfigPath, "APP")
+
+	absPath, absErr := filepath.Abs(migrationConfigPath)
+	handleErr(absErr)
+
+	globalConfig.MigrationDir = path.Dir(absPath)
 	banshee, initErr := core.NewBanshee(globalConfig, migrationConfig)
 	handleErr(initErr)
 

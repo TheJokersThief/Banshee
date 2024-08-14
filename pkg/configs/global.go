@@ -11,6 +11,9 @@ type GlobalConfig struct {
 	Options OptionsConfig `fig:"options"`
 
 	Defaults DefaultsConfig `fig:"defaults"`
+
+	// Computed fields
+	MigrationDir string
 }
 
 type GithubConfig struct {
