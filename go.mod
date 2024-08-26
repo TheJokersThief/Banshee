@@ -8,7 +8,7 @@ require (
 	github.com/alecthomas/kong v0.9.0
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
-	github.com/charmbracelet/lipgloss v0.12.1
+	github.com/charmbracelet/lipgloss v0.13.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/goccy/go-yaml v1.12.0
 	github.com/google/go-github v17.0.0+incompatible
