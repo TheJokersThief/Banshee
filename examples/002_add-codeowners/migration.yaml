@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/TheJokersThief/Banshee/main/schemas/migration.json
+
+all_repos_in_org: true
+
+organisation: "example-org"
+branch_name: "auto-code-migration/qol/add-codeowners"
+
+actions: 
+  - action: run_command
+    description: "Add codeowners"
+    input: 
+      command: "echo '* @example-org/engineering' > CODEOWNERS"
+
+pr_title: "Add CODEOWNERS"
+pr_body_file: "examples/001_add-codeowners/prbody.md"
+pr_as_drafts: false # If true, PRs will be created as drafts

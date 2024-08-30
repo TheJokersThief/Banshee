@@ -1,0 +1,23 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/TheJokersThief/Banshee/main/schemas/migration.json
+
+# You can only choose one of:
+#   - search_query (A GitHub code search query for matching repos)
+#   - all_repos_in_org (Use every repo in the organisation)
+#   - repos (A static list of repos)
+# search_query: "reference-to-old.url"
+all_repos_in_org: true
+# repos:
+#   - example-org/entity-service
+
+organisation: "example-org"
+branch_name: "auto-code-migration/obsv/examples/001_bash-script-add-file-template"
+
+actions: 
+  - action: run_command
+    description: "Add workflow tracing workflow"
+    input: 
+      command: "bash ${MIGRATION_DIR}/add_workflow.sh"
+
+pr_title: "Add pipeline tracing workflow"
+pr_body_file: "examples/001_bash-script-add-file-template/prbody.md"
+pr_as_drafts: false # If true, PRs will be created as drafts
