@@ -18,6 +18,14 @@ it's a lot less reasonable.
 Hopefully this CLI helps manage those code changes and the pull request lifecycle
 required to get them applied.
 
+## Highlighted Features
+
+* 🤖 **Github App creds** for higher ratelimits and impersonal attribution.
+* 🚚 **Progress saving** which lets you stop, start and resume migrations any time, or in the event of an error.
+* 🍞 **Batching** so you can space out the work over multiple days/weeks.
+* ✅ **Assign reviewers** as a default if codeowners don't get assigned, never leave a PR unreviewed again
+* 📋 View a **list of PRs** related to the migration, in any state
+
 # Install
 
 ```bash
