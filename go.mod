@@ -7,10 +7,10 @@ toolchain go1.22.6
 require (
 	github.com/alecthomas/kong v1.4.0
 	github.com/avast/retry-go/v4 v4.6.0
-	github.com/bradleyfalzon/ghinstallation/v2 v2.11.0
+	github.com/bradleyfalzon/ghinstallation/v2 v2.12.0
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/go-git/go-git/v5 v5.12.0
-	github.com/goccy/go-yaml v1.13.7
+	github.com/goccy/go-yaml v1.14.3
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v63 v63.0.0
 	github.com/gosimple/slug v1.14.0
@@ -36,7 +36,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.5.0 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/google/go-github/v62 v62.0.0 // indirect
+	github.com/google/go-github/v66 v66.0.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/gosimple/unidecode v1.0.1 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
