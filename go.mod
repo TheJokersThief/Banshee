@@ -5,12 +5,12 @@ go 1.22.1
 toolchain go1.22.6
 
 require (
-	github.com/alecthomas/kong v1.5.0
+	github.com/alecthomas/kong v1.6.0
 	github.com/avast/retry-go/v4 v4.6.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.12.0
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/go-git/go-git/v5 v5.12.0
-	github.com/goccy/go-yaml v1.15.5
+	github.com/goccy/go-yaml v1.15.7
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v63 v63.0.0
 	github.com/gosimple/slug v1.14.0
