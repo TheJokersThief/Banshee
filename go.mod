@@ -9,7 +9,7 @@ require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.14.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/go-git/go-git/v5 v5.14.0
-	github.com/goccy/go-yaml v1.16.0
+	github.com/goccy/go-yaml v1.17.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v63 v63.0.0
 	github.com/gosimple/slug v1.15.0
