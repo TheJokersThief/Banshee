@@ -4,12 +4,12 @@ go 1.22.1
 toolchain go1.24.1
 
 require (
-	github.com/alecthomas/kong v1.9.0
+	github.com/alecthomas/kong v1.10.0
 	github.com/avast/retry-go/v4 v4.6.1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.14.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/go-git/go-git/v5 v5.14.0
-	github.com/goccy/go-yaml v1.17.0
+	github.com/goccy/go-yaml v1.17.1
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/go-github/v63 v63.0.0
 	github.com/gosimple/slug v1.15.0
@@ -18,7 +18,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.10.0
 	github.com/yargevad/filepathx v1.0.0
-	golang.org/x/oauth2 v0.28.0
+	golang.org/x/oauth2 v0.29.0
 )
 
 require (
