@@ -5,7 +5,7 @@ go 1.23.0
 toolchain go1.24.1
 
 require (
-	github.com/alecthomas/kong v1.10.0
+	github.com/alecthomas/kong v1.11.0
 	github.com/avast/retry-go/v4 v4.6.1
 	github.com/bradleyfalzon/ghinstallation/v2 v2.15.0
 	github.com/charmbracelet/lipgloss v1.1.0
