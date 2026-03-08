@@ -177,18 +177,35 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 			return "", actionErr
 		}
 
-		dirty, commitErr := b.commitIfDirty(log, dir, action.Description)
-		if commitErr != nil {
-			return "", commitErr
-		}
-		if dirty {
-			changelog = append(changelog, "* "+action.Description)
-			commitMade = true
+		if b.DryRun {
+			isClean, cleanErr := b.GithubClient.GitIsClean(dir)
+			if cleanErr != nil {
+				return "", cleanErr
+			}
+			if !isClean {
+				log.Info("[dry-run] Would commit: ", action.Description)
+				changelog = append(changelog, "* "+action.Description)
+				commitMade = true
+			}
+		} else {
+			dirty, commitErr := b.commitIfDirty(log, dir, action.Description)
+			if commitErr != nil {
+				return "", commitErr
+			}
+			if dirty {
+				changelog = append(changelog, "* "+action.Description)
+				commitMade = true
+			}
 		}
 	}
 
 	if !commitMade {
 		log.Info("No changes made for ", repo)
+		return "", nil
+	}
+
+	if b.DryRun {
+		log.Info("[dry-run] Would push branch and open/update PR for ", repo)
 		return "", nil
 	}
 
