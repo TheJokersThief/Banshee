@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git check-ignore:*)",
+      "Bash(git:*)",
+      "Bash(go mod:*)",
+      "Bash(go test:*)",
+      "Bash(go build:*)",
+      "Bash(grep:*)",
+      "Bash(go:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(just lint:*)",
+      "Bash(golangci-lint:*)",
+      "Bash(gh pr:*)",
+      "Skill(commit-commands:commit-push-pr)",
+      "Skill(commit-commands:commit)",
+      "Bash(gofmt:*)",
+      "Bash(export:*)"
+    ]
+  }
+}
