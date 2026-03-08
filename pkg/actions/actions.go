@@ -8,6 +8,13 @@ import (
 	"github.com/thejokersthief/banshee/v2/pkg/configs"
 )
 
+const (
+	subActionReplace    = "replace"
+	subActionAdd        = "add"
+	subActionDelete     = "delete"
+	subActionListAppend = "list_append"
+)
+
 type ActionRunner interface {
 	Run(log *logrus.Entry) error
 }

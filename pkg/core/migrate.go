@@ -128,6 +128,29 @@ func (b *Banshee) applyBatchLimit(repos []string) []string {
 	return repos
 }
 
+// applyActionAndCommit runs an action and either commits the result (normal mode)
+// or logs what would be committed (dry-run mode).
+// It returns (true, nil) when a change was detected.
+func (b *Banshee) applyActionAndCommit(log *logrus.Entry, dir, actionID, description string, input map[string]string) (bool, error) {
+	if err := actions.RunAction(log, b.GlobalConfig, actionID, dir, description, input); err != nil {
+		return false, err
+	}
+
+	if b.DryRun {
+		isClean, err := b.GithubClient.GitIsClean(dir)
+		if err != nil {
+			return false, err
+		}
+		if !isClean {
+			log.Info("[dry-run] Would commit: ", description)
+			return true, nil
+		}
+		return false, nil
+	}
+
+	return b.commitIfDirty(log, dir, description)
+}
+
 // commitIfDirty stages all changes and commits when the working tree is dirty.
 // It returns (true, nil) when a commit was made and (false, nil) when clean.
 func (b *Banshee) commitIfDirty(log *logrus.Entry, dir, message string) (bool, error) {
@@ -172,30 +195,13 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 	changelog := []string{}
 	commitMade := false // Track whether any commits are made as actions run
 	for _, action := range b.MigrationConfig.Actions {
-		actionErr := actions.RunAction(log, b.GlobalConfig, action.Action, dir, action.Description, action.Input)
+		dirty, actionErr := b.applyActionAndCommit(log, dir, action.Action, action.Description, action.Input)
 		if actionErr != nil {
 			return "", actionErr
 		}
-
-		if b.DryRun {
-			isClean, cleanErr := b.GithubClient.GitIsClean(dir)
-			if cleanErr != nil {
-				return "", cleanErr
-			}
-			if !isClean {
-				log.Info("[dry-run] Would commit: ", action.Description)
-				changelog = append(changelog, "* "+action.Description)
-				commitMade = true
-			}
-		} else {
-			dirty, commitErr := b.commitIfDirty(log, dir, action.Description)
-			if commitErr != nil {
-				return "", commitErr
-			}
-			if dirty {
-				changelog = append(changelog, "* "+action.Description)
-				commitMade = true
-			}
+		if dirty {
+			changelog = append(changelog, "* "+action.Description)
+			commitMade = true
 		}
 	}
 

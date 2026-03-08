@@ -36,7 +36,7 @@ func jsonTestSetup(t *testing.T) (*JSON, *logrus.Entry, string) {
 	j := &JSON{
 		Glob:      filepath.Join(tempDir, "*.json"),
 		Path:      "version",
-		SubAction: "replace",
+		SubAction: subActionReplace,
 		Value:     "2.0.0",
 	}
 
@@ -67,7 +67,7 @@ func TestJSON_Run_Replace(t *testing.T) {
 
 func TestJSON_Run_Add(t *testing.T) {
 	j, logEntry, jsonFile := jsonTestSetup(t)
-	j.SubAction = "add"
+	j.SubAction = subActionAdd
 	j.Path = "author"
 	j.Value = "Jane Doe"
 
@@ -87,7 +87,7 @@ func TestJSON_Run_Add(t *testing.T) {
 
 func TestJSON_Run_Delete(t *testing.T) {
 	j, logEntry, jsonFile := jsonTestSetup(t)
-	j.SubAction = "delete"
+	j.SubAction = subActionDelete
 	j.Path = "version"
 	j.Value = ""
 
@@ -111,7 +111,7 @@ func TestJSON_Run_Delete(t *testing.T) {
 
 func TestJSON_Run_ListAppend(t *testing.T) {
 	j, logEntry, jsonFile := jsonTestSetup(t)
-	j.SubAction = "list_append"
+	j.SubAction = subActionListAppend
 	j.Path = "tags"
 	j.Value = "gamma"
 
@@ -131,7 +131,7 @@ func TestJSON_Run_ListAppend(t *testing.T) {
 
 func TestJSON_Run_ListAppend_NonArray(t *testing.T) {
 	j, logEntry, jsonFile := jsonTestSetup(t)
-	j.SubAction = "list_append"
+	j.SubAction = subActionListAppend
 	j.Path = "version" // a string, not an array
 	j.Value = "extra"
 

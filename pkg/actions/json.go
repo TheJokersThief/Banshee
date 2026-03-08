@@ -57,11 +57,11 @@ func (j *JSON) Run(log *logrus.Entry) error {
 		var actionErr error
 
 		switch j.SubAction {
-		case "replace", "add":
+		case subActionReplace, subActionAdd:
 			out, actionErr = sjson.SetBytes(content, j.Path, j.Value)
-		case "delete":
+		case subActionDelete:
 			out, actionErr = sjson.DeleteBytes(content, j.Path)
-		case "list_append":
+		case subActionListAppend:
 			current := gjson.GetBytes(content, j.Path)
 			if !current.Exists() || !current.IsArray() {
 				log.Errorf("list_append requires an existing array at path %q in %s", j.Path, file)
