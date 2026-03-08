@@ -34,7 +34,7 @@ pipeline.new(
                             failfast: true,
                             race: true,
                         }},
-                        steps.run('go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...', name='Lint'),
+                        steps.run("curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin && golangci-lint run ./...", name='Lint'),
                     ],
                 )
             ],

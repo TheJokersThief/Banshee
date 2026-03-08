@@ -26,7 +26,7 @@ clean:
 
 # Run code styling and static analysis checks
 lint:
-    @go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    @curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
     @golangci-lint run ./...
 
 # Push a tag to mark a new version
