@@ -30,17 +30,14 @@ func (b *Banshee) Migrate() error {
 	}
 
 	if b.Progress != nil {
-		repos = b.Progress.GetReposNotMigrated()
-		if batch := b.GlobalConfig.Options.SaveProgress.Batch; batch < int64(len(repos)) {
-			repos = repos[:batch]
-		}
+		repos = b.applyBatchLimit(b.Progress.GetReposNotMigrated())
 	}
 
 	if len(repos) == 0 {
 		if b.Progress != nil {
-			return fmt.Errorf("Found no repos for migration. Maybe you need to check the progress file? %s", b.Progress.ProgressFile())
+			return fmt.Errorf("found no repos for migration; check the progress file: %s", b.Progress.ProgressFile())
 		}
-		return fmt.Errorf("Found no repos for migration")
+		return fmt.Errorf("found no repos for migration")
 	}
 
 	var migrationErrors []error
@@ -121,6 +118,38 @@ func (b *Banshee) saveRepos(repos []string) []string {
 	return repos
 }
 
+// applyBatchLimit trims repos to the configured batch size when SaveProgress is
+// enabled and a positive batch value has been set.
+func (b *Banshee) applyBatchLimit(repos []string) []string {
+	batch := int(b.GlobalConfig.Options.SaveProgress.Batch)
+	if batch > 0 && batch < len(repos) {
+		return repos[:batch]
+	}
+	return repos
+}
+
+// commitIfDirty stages all changes and commits when the working tree is dirty.
+// It returns (true, nil) when a commit was made and (false, nil) when clean.
+func (b *Banshee) commitIfDirty(log *logrus.Entry, dir, message string) (bool, error) {
+	isClean, isCleanErr := b.GithubClient.GitIsClean(dir)
+	if isCleanErr != nil {
+		return false, isCleanErr
+	}
+	if isClean {
+		return false, nil
+	}
+	log.Debug("Is dirty, committing changes: ", message)
+	if addErr := b.GithubClient.GitAddAll(dir); addErr != nil {
+		return false, addErr
+	}
+	if commitErr := b.GithubClient.GitCommit(dir, message,
+		b.GlobalConfig.Defaults.GitName,
+		b.GlobalConfig.Defaults.GitEmail); commitErr != nil {
+		return false, commitErr
+	}
+	return true, nil
+}
+
 func (b *Banshee) getCacheRepoPath(org, repo string) string {
 	return fmt.Sprintf("%s/%s-%s", b.GlobalConfig.Options.CacheRepos.Directory, org, repo)
 }
@@ -148,21 +177,12 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 			return "", actionErr
 		}
 
-		isClean, isCleanErr := b.GithubClient.GitIsClean(dir)
-		if isCleanErr != nil {
-			return "", isCleanErr
+		dirty, commitErr := b.commitIfDirty(log, dir, action.Description)
+		if commitErr != nil {
+			return "", commitErr
 		}
-		if !isClean {
+		if dirty {
 			changelog = append(changelog, "* "+action.Description)
-			log.Debug("Is dirty, committing changes: ", action.Description)
-			if addErr := b.GithubClient.GitAddAll(dir); addErr != nil {
-				return "", addErr
-			}
-			if commitErr := b.GithubClient.GitCommit(dir, action.Description,
-				b.GlobalConfig.Defaults.GitName,
-				b.GlobalConfig.Defaults.GitEmail); commitErr != nil {
-				return "", commitErr
-			}
 			commitMade = true
 		}
 	}

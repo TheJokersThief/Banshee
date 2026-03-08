@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,38 +8,85 @@ import (
 )
 
 func TestOnlyOneRepoChoice(t *testing.T) {
-	var want, got error
-
-	mainConf := configs.MigrationConfig{
-		SearchQuery:   "Test query",
-		ListOfRepos:   []string{"repo_name"},
-		AllReposInOrg: true,
-	}
 	globalConf := configs.GlobalConfig{
 		Options: configs.OptionsConfig{LogLevel: "info"},
 		Github:  configs.GithubConfig{Token: "testtoken"},
 	}
-	b, err := NewBanshee(globalConf, mainConf)
-	assert.NoError(t, err)
 
-	want = MustUseOneErr
-	b.MigrationConfig = &configs.MigrationConfig{}
-	got = b.OnlyOneRepoChoice()
-	assert.ErrorIs(t, got, want)
+	tests := []struct {
+		name       string
+		migConf    configs.MigrationConfig
+		wantErr    error
+	}{
+		{
+			name:    "none set returns MustUseOneErr",
+			migConf: configs.MigrationConfig{},
+			wantErr: MustUseOneErr,
+		},
+		{
+			name: "search_query and list_of_repos returns OnlyUseOneErr",
+			migConf: configs.MigrationConfig{
+				SearchQuery: "Test query",
+				ListOfRepos: []string{"repo_name"},
+			},
+			wantErr: OnlyUseOneErr,
+		},
+		{
+			name: "list_of_repos and all_repos_in_org returns OnlyUseOneErr",
+			migConf: configs.MigrationConfig{
+				ListOfRepos:   []string{"repo_name"},
+				AllReposInOrg: true,
+			},
+			wantErr: OnlyUseOneErr,
+		},
+		{
+			name: "search_query and all_repos_in_org returns OnlyUseOneErr",
+			migConf: configs.MigrationConfig{
+				SearchQuery:   "Test query",
+				AllReposInOrg: true,
+			},
+			wantErr: OnlyUseOneErr,
+		},
+		{
+			name: "only search_query returns no error",
+			migConf: configs.MigrationConfig{
+				SearchQuery: "Test query",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "only list_of_repos returns no error",
+			migConf: configs.MigrationConfig{
+				ListOfRepos: []string{"repo_name"},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "only all_repos_in_org returns no error",
+			migConf: configs.MigrationConfig{
+				AllReposInOrg: true,
+			},
+			wantErr: nil,
+		},
+	}
 
-	want = OnlyUseOneErr
-	b.MigrationConfig = &configs.MigrationConfig{SearchQuery: mainConf.SearchQuery, ListOfRepos: mainConf.ListOfRepos}
-	got = b.OnlyOneRepoChoice()
-	fmt.Println(got)
-	assert.ErrorIs(t, got, want)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			b, err := NewBanshee(globalConf, configs.MigrationConfig{
+				// Need at least one repo option to pass NewBanshee validation;
+				// we override MigrationConfig directly after construction.
+				ListOfRepos: []string{"bootstrap"},
+			})
+			assert.NoError(t, err)
 
-	want = OnlyUseOneErr
-	b.MigrationConfig = &configs.MigrationConfig{ListOfRepos: mainConf.ListOfRepos, AllReposInOrg: mainConf.AllReposInOrg}
-	got = b.OnlyOneRepoChoice()
-	assert.ErrorIs(t, got, want)
+			b.MigrationConfig = &tc.migConf
+			got := b.OnlyOneRepoChoice()
 
-	want = OnlyUseOneErr
-	b.MigrationConfig = &configs.MigrationConfig{SearchQuery: mainConf.SearchQuery, AllReposInOrg: mainConf.AllReposInOrg}
-	got = b.OnlyOneRepoChoice()
-	assert.ErrorIs(t, got, want)
+			if tc.wantErr != nil {
+				assert.ErrorIs(t, got, tc.wantErr)
+			} else {
+				assert.NoError(t, got)
+			}
+		})
+	}
 }

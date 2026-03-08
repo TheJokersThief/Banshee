@@ -30,10 +30,7 @@ func (b *Banshee) Clone() error {
 	}
 
 	if b.Progress != nil {
-		repos = b.Progress.GetReposNotCloned()
-		if batch := b.GlobalConfig.Options.SaveProgress.Batch; batch < int64(len(repos)) {
-			repos = repos[:batch]
-		}
+		repos = b.applyBatchLimit(b.Progress.GetReposNotCloned())
 	}
 
 	b.log.Info("Cloning ", len(repos), " repos")

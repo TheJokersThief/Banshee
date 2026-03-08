@@ -42,13 +42,12 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 	pr, _, err := gc.Client.PullRequests.Create(gc.ctx, org, repo, newPR)
 	if err != nil {
 		var errResponse *github.ErrorResponse
-		ghErr := errors.As(err, &errResponse)
-		if ghErr {
+		if errors.As(err, &errResponse) {
 			if len(errResponse.Errors) > 0 && strings.Contains(errResponse.Errors[0].Message, "No commits between") {
 				return "", nil
 			}
-			return "", err
 		}
+		return "", err
 	}
 
 	gc.log.WithField("AssignReviewers", gc.GlobalConfig.Options.AssignCodeReviewerIfNoneAssigned).Debug("Assigning reviewers, if enabled")

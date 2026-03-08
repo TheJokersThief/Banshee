@@ -10,7 +10,7 @@ local tag_filter = workflows.filter_tags(only=['/v.*/']) + workflows.filter_bran
 local branches_filter = workflows.filter_branches(only=['/.*/']) + workflows.filter_tags(ignore=['/.*/']);
 
 local homedir = '/home/circleci/banshee';
-local gover = '1.22';
+local gover = '1.23';
 
 
 pipeline.new(
@@ -28,11 +28,13 @@ pipeline.new(
                         steps.checkout(),
                         'go/load-cache',
                         'go/mod-download',
-                        { 'go/test': { 
+                        'go/save-cache',
+                        { 'go/test': {
                             covermode: "atomic",
                             failfast: true,
                             race: true,
                         }},
+                        steps.run('go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...', name='Lint'),
                     ],
                 )
             ],

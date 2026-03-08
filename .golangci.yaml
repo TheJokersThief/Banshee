@@ -6,11 +6,9 @@ linters:
   - errorlint
   - wastedassign
   - errcheck
-  - megacheck
   - ineffassign
   - typecheck
   - dogsled
-  - exportloopref
   - misspell
   - goconst
   - gofmt
@@ -20,7 +18,21 @@ linters:
   - unparam
   - unconvert
   - unused
+  - gocyclo
+  - exhaustive
+  - wrapcheck
 
 linters-settings:
   errcheck:
-    exclude: errcheck-exclude.txt
+    exclude-functions:
+      - (io.Closer).Close
+      - (*os.File).Close
+  gocyclo:
+    min-complexity: 15
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - .Wrap(
+      - .Wrapf(

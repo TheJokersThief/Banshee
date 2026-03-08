@@ -86,15 +86,15 @@ func newGithubAppClient(globalConf configs.GlobalConfig, ghClient *GithubClient,
 	)
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("loading GitHub App private key: %w", err)
 	}
 
 	// Use installation transport with client.
 	ghClient.Client = github.NewClient(&http.Client{Transport: itr})
-	ghClient.accessToken, err = itr.Token(ctx)
 	ghClient.tokenRefreshItr = itr
+	ghClient.accessToken, err = itr.Token(ctx)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("fetching initial GitHub App token: %w", err)
 	}
 
 	return ghClient, nil
@@ -175,5 +175,5 @@ func (gc *GithubClient) GetDefaultBranch(owner, repo string) (string, error) {
 		return "", searchErr
 	}
 
-	return *ghRepo.DefaultBranch, nil
+	return ghRepo.GetDefaultBranch(), nil
 }

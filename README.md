@@ -26,45 +26,119 @@ required to get them applied.
 * ✅ **Assign reviewers** as a default if codeowners don't get assigned, never leave a PR unreviewed again
 * 📋 View a **list of PRs** related to the migration, in any state
 
-# Install
+# Installation
+
+## Supported Architectures
+
+- `darwin-arm64` (macOS with Apple Silicon)
+- `darwin-amd64` (macOS with Intel)
+- `linux-amd64` (Linux x86_64)
+
+## Install from Release
 
 ```bash
-export ARCH="darwin-arm64"
-# export ARCH="darwin-amd64"
-# export ARCH="linux-amd64"
+export ARCH="darwin-arm64"  # Change to your architecture
 curl -o banshee -L "https://github.com/TheJokersThief/Banshee/releases/latest/download/banshee-${ARCH}" \
   && chmod +x banshee \
   && sudo mv banshee /usr/local/bin/
 ```
 
-
-# Usage
+Verify installation:
 
 ```bash
-Usage: banshee <command>
-
-Flags:
-  -h, --help                      Show context-sensitive help.
-  -c, --config="./config.yaml"    Path to global CLI config
-
-Commands:
-  version
-    Print banshee CLI version
-
-  migrate <path>
-    Run a migration
-
-  list <path>
-    List PRs associated with a migration
-  
-  merge <path>
-    Merge PRs not blocked by any branch protections
-
-  clone <path>
-    Clone all of the repositories that are going to be involved in a migration
-
-Run "main <command> --help" for more information on a command.
+banshee version
 ```
+
+
+# Quickstart
+
+## 1. Create Configuration Files
+
+Create your global configuration (`config.yaml`):
+
+```yaml
+github:
+  use_github_app: false
+  token: "gha_YOUR_PERSONAL_ACCESS_TOKEN"
+
+defaults:
+  git_email: "your-email@example.com"
+  git_name: "Your Name"
+  organisation: "your-org"
+  code_reviewer: "team-slug"
+
+options:
+  log_level: info
+  save_progress:
+    enabled: true
+    directory: ".banshee"
+```
+
+Create your migration configuration (`migration.yaml`):
+
+```yaml
+search_query: "file:old_config.json"
+organisation: "your-org"
+branch_name: "chore/update-config"
+
+actions:
+  - action: replace
+    description: "Update old config references"
+    input:
+      glob: "**/*.json"
+      old: "old_config"
+      new: "new_config"
+
+pr_title: "Update config references"
+pr_body_file: "pr_body.md"
+```
+
+## 2. Clone Repositories
+
+Before running migrations, clone the target repositories:
+
+```bash
+banshee clone migration.yaml --config config.yaml
+```
+
+## 3. Run Migration
+
+Execute the migration across all matching repositories:
+
+```bash
+banshee migrate migration.yaml --config config.yaml
+```
+
+## 4. Review and Merge
+
+List all PRs created by the migration:
+
+```bash
+banshee list migration.yaml --config config.yaml
+```
+
+Automatically merge PRs that pass all branch protections:
+
+```bash
+banshee merge migration.yaml --config config.yaml
+```
+
+# Commands
+
+## Global Flags
+
+- `-c, --config` Path to global CLI config file (default: `./config.yaml`)
+- `-h, --help` Show help message
+
+## Available Commands
+
+- `version` - Print banshee CLI version
+- `clone <path>` - Clone all repositories involved in the migration
+- `migrate <path>` - Run the migration actions across repositories
+- `list <path>` - List PRs associated with a migration
+- `merge <path>` - Merge PRs that pass all branch protections
+
+For detailed help on any command, run `banshee <command> --help`
 
 ## Examples
 
@@ -106,14 +180,34 @@ banshee merge examples/migration_config/migration.yaml \
 ```
 
 # Configuration
-Examples of configuration and all available options can be found in the examples
-directory. I try to keep the configs well commented to explain all the features.
 
-* [Global config](examples/global_config/config.yaml): The configuration for the 
-CLI as a whole. Things like auth and defaults.
-* [Migration config](examples/migration_config/migration.yaml): The configuration
-for an individual migration. 
+Banshee requires two configuration files:
+
+## Global Configuration
+
+The global config file (`config.yaml`) contains:
+- GitHub authentication (Personal Access Token or GitHub App credentials)
+- Default values (git email, name, organization, code reviewer)
+- Options (logging level, caching, progress saving, merge strategy)
+
+See [docs/global_config.md](docs/global_config.md) for complete documentation and [examples/global_config/config.yaml](examples/global_config/config.yaml) for a full example.
+
+## Migration Configuration
+
+Each migration has its own config file that defines:
+- Repository selection (by search query, list, or all repos in org)
+- Actions to perform (find/replace, run commands, YAML modifications, add files)
+- PR details (title, body, draft status)
+
+See [docs/migrations.md](docs/migrations.md) for action documentation and [examples/migration_config/migration.yaml](examples/migration_config/migration.yaml) for a complete example.
+
+### Real-World Examples
+
+- [Bash script and file template](examples/001_bash-script-add-file-template/) - Run a bash script and add files
+- [CODEOWNERS addition](examples/002_add-codeowners/) - Add CODEOWNERS file to repos
 
 # Documentation
 
-Have a look in [docs/](docs/) for further information.
+For more information, see [docs/](docs/):
+- [Global Configuration Reference](docs/global_config.md)
+- [Migration Actions Reference](docs/migrations.md)

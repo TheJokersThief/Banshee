@@ -5,6 +5,7 @@
 
 - [Overview](#overview)
 - [Actions](#actions)
+  - [Add file](#add-file)
   - [Find and replace](#find-and-replace)
   - [Run commands](#run-commands)
   - [YAML](#yaml)
@@ -26,6 +27,26 @@ Below is high level flow diagram of how a migration works.
 The description is the content of the commit message with the changes made.
 
 Any field with a default of `-` is a required field.
+
+## Add file
+
+Creates a new file with the specified content.
+
+|      Key | Description                   | Default |
+| -------: | ----------------------------- | ------- |
+|     file | Path and filename to create   | –       |
+|  content | Content of the new file       | –       |
+
+```yaml
+- action: add_file
+  description: "Add new configuration file"
+  input:
+    file: ".gitignore"
+    content: |
+      node_modules/
+      dist/
+      .env
+```
 
 ## Find and replace
 

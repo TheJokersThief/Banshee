@@ -1,15 +1,12 @@
 package progress
 
-// Returns a list of repos that haven't been cloned yet
-func (p *Progress) GetReposNotCloned() []string {
-	reposForCloning := []string{}
-	for repo, progress := range p.Config.Repos {
-		if !progress.Cloned {
-			reposForCloning = append(reposForCloning, repo)
-		}
-	}
+import "github.com/thejokersthief/banshee/v2/pkg/configs"
 
-	return reposForCloning
+// GetReposNotCloned returns a list of repos that haven't been cloned yet.
+func (p *Progress) GetReposNotCloned() []string {
+	return p.reposWhere(func(rp *configs.RepoProgress) bool {
+		return !rp.Cloned
+	})
 }
 
 func (p *Progress) MarkCloned(repo string) error {

@@ -100,3 +100,14 @@ func (p *Progress) writeProgress() error {
 func (p *Progress) hrTimestamp() string {
 	return time.Now().String()
 }
+
+// reposWhere returns all repos whose progress satisfies the provided predicate.
+func (p *Progress) reposWhere(predicate func(*configs.RepoProgress) bool) []string {
+	repos := []string{}
+	for repo, progress := range p.Config.Repos {
+		if predicate(progress) {
+			repos = append(repos, repo)
+		}
+	}
+	return repos
+}
