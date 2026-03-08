@@ -32,6 +32,7 @@ var CLI struct {
 	Version struct{} `cmd:"" help:"Print the banshee version and git commit SHA."`
 	Migrate struct {
 		MigrationFile string `arg:"" name:"path" help:"Path to the migration config file (YAML). Defines the target repos, branch name, actions to run, and PR settings." type:"path"`
+		DryRun        bool   `name:"dry-run" short:"d" help:"Preview changes without committing, pushing, or opening PRs."`
 	} `cmd:"" help:"Run a migration: clone repos, apply actions, commit changes, and open pull requests."`
 
 	List struct {
@@ -70,6 +71,7 @@ func main() {
 	switch ctx.Command() {
 	case "migrate <path>":
 		banshee := createBanshee(globalConfig, CLI.Migrate.MigrationFile)
+		banshee.DryRun = CLI.Migrate.DryRun
 		migrationErr := banshee.Migrate()
 		handleErr(migrationErr)
 	case "list <path>":
