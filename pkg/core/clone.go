@@ -12,7 +12,7 @@ func (b *Banshee) Clone() error {
 	b.log = logrus.WithField("command", "clone")
 
 	if !b.GlobalConfig.Options.CacheRepos.Enabled {
-		return errors.New("Please set options.cache_repos.enabled to `true` if you want to preclone all the repos")
+		return errors.New("options.cache_repos.enabled must be true to use the clone command")
 	}
 
 	if validationErr := b.validateMigrateCommand(); validationErr != nil {
@@ -30,10 +30,7 @@ func (b *Banshee) Clone() error {
 	}
 
 	if b.Progress != nil {
-		repos = b.Progress.GetReposNotCloned()
-		if batch := b.GlobalConfig.Options.SaveProgress.Batch; batch < int64(len(repos)) {
-			repos = repos[:batch]
-		}
+		repos = b.applyBatchLimit(b.Progress.GetReposNotCloned())
 	}
 
 	b.log.Info("Cloning ", len(repos), " repos")

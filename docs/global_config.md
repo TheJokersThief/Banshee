@@ -4,6 +4,7 @@
 
 - [GitHub github](#github-github)
 - [Options options](#options-options)
+    - [Logging log_level](#logging-log_level)
     - [Assigning code reviewers assign_code_reviewer_if_none_assigned](#assigning-code-reviewers-assign_code_reviewer_if_none_assigned)
     - [Show the output from git commands show_git_output](#show-the-output-from-git-commands-show_git_output)
     - [Caching repos cache_repos](#caching-repos-cache_repos)
@@ -35,6 +36,8 @@ There are two choices:
 
 ```yaml
 options:
+  # Controls the verbosity of log output (debug, info, warn, error)
+  log_level: info
   # Assign a team to review code if no reviewers are already assigned by a CODEOWNERS file
   assign_code_reviewer_if_none_assigned: false
   # Show the output from all git actions (e.g. clones, pulls and fetches)
@@ -55,6 +58,12 @@ options:
     strategy: "merge" # "merge", "squash", "rebase"
     append_title: "[CI SKIP]" # A string to append to the merge commit message
 ```
+
+## Logging (`log_level`)
+
+Controls the verbosity of log output. Valid values are `debug`, `info`, `warn`, and `error`. The default is `info`.
+
+Use `debug` to see detailed information about each action and network request. Use `warn` or `error` to suppress informational messages.
 
 ## Assigning code reviewers (`assign_code_reviewer_if_none_assigned`)
 

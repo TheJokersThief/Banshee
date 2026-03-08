@@ -11,10 +11,23 @@ build_darwin version="development": (_build_generic "darwin" "amd64" version)
 # Build for MacOS arm64
 build_darwin_arm version="development": (_build_generic "darwin" "arm64" version)
 
+# Run all tests
+test:
+    @go test ./...
+
+# Run tests with coverage report
+coverage:
+    @go test -coverprofile=coverage.out ./...
+    @go tool cover -func=coverage.out
+
+# Remove build artifacts
+clean:
+    @rm -rf dist/ coverage.out
+
 # Run code styling and static analysis checks
 lint:
-    go get github.com/golangci/golangci-lint/cmd/golangci-lint
-    go run github.com/golangci/golangci-lint/cmd/golangci-lint run ./...
+    @curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin
+    @golangci-lint run ./...
 
 # Push a tag to mark a new version
 publish:
@@ -39,7 +52,7 @@ _build_generic os arch version="development":
         --ldflags '-X main.Version={{ version }} -X main.GitCommitSHA={{ COMMIT_SHA }}' \
         -o dist/bin/{{ PROJECT_NAME }}-{{ os }}-{{ arch }} ./cmd/{{ PROJECT_NAME }}
 
-# Check if the test files exist, and error if they don't 
+# Check if the test files exist, and error if they don't
 @_check_test_conf_exists:
     if `[[ ! -f "examples/global_config/config.test.yaml" ]]`; then \
         echo "\n\nPlease create a test config file by copying examples/global_config/config.yaml to examples/global_config/config.test.yaml\n\n"; exit 1; \

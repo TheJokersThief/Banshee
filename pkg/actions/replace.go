@@ -2,12 +2,11 @@
 package actions
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"math"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/icholy/replace"
 	"github.com/sirupsen/logrus"
@@ -50,36 +49,43 @@ func NewReplaceAction(dir string, description string, input map[string]string, i
 func (r *Replace) Run(log *logrus.Entry) error {
 	log.Debug("Replace action: ", r.OldString, " --> ", r.NewString)
 
-	files := make(chan string, 512)
-	errChan := make(chan error, math.MaxInt8)
-	for workerCount := 0; workerCount < threadCount; workerCount++ {
-		go r.findAndReplaceWorker(log, files, errChan)
-	}
-
 	globPattern := r.BaseDir + "/" + r.Glob
 	matches, err := filepathx.Glob(globPattern)
 	if err != nil {
-		logrus.WithField("pattern", globPattern).Error("Error globbing file path: ", err)
-		return err
+		log.WithField("pattern", globPattern).Error("Error globbing file path: ", err)
+		return fmt.Errorf("glob %q: %w", globPattern, err)
 	}
 	matches = r.removeBlacklistedDirectories(matches)
+
+	// Buffer the error channel to hold one entry per file so workers never
+	// block on it, even if every file produces an error.
+	files := make(chan string, len(matches))
+	errChan := make(chan error, len(matches))
+
+	var wg sync.WaitGroup
+	for workerCount := 0; workerCount < threadCount; workerCount++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			r.findAndReplaceWorker(log, files, errChan)
+		}()
+	}
 
 	for _, match := range matches {
 		files <- match
 	}
 	close(files)
 
-	if len(errChan) != 0 {
-		finalError := fmt.Errorf("")
-		totalErrs := len(errChan)
-		for i := 0; i < totalErrs; i++ {
-			fileErr := <-errChan
-			finalError = errors.Join(finalError, fileErr)
-		}
-		return finalError
-	}
+	// Wait for all workers to finish before reading the error channel so that
+	// no errors are missed.
+	wg.Wait()
+	close(errChan)
 
-	return nil
+	var finalError error
+	for fileErr := range errChan {
+		finalError = fmt.Errorf("%w; %w", finalError, fileErr)
+	}
+	return finalError
 }
 
 func (r *Replace) removeBlacklistedDirectories(matches []string) []string {
@@ -105,7 +111,11 @@ func (r *Replace) removeBlacklistedDirectories(matches []string) []string {
 func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, errChan chan<- error) {
 	for file := range files {
 		content, readErr := os.ReadFile(file)
-		if !strings.Contains(string(content), r.OldString) || readErr != nil {
+		if readErr != nil {
+			errChan <- fmt.Errorf("couldn't read file %q: %w", file, readErr)
+			continue
+		}
+		if !strings.Contains(string(content), r.OldString) {
 			continue
 		}
 
@@ -113,14 +123,15 @@ func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, e
 
 		f, err := os.Open(file)
 		if err != nil {
-			errChan <- errors.New("couldn't open file: " + err.Error())
+			errChan <- fmt.Errorf("couldn't open file %q: %w", file, err)
 			continue
 		}
 
 		// create temp file
 		tmp, err := os.CreateTemp(os.TempDir(), "replace-*")
 		if err != nil {
-			errChan <- errors.New("couldn't create temporary file: " + err.Error())
+			f.Close()
+			errChan <- fmt.Errorf("couldn't create temporary file: %w", err)
 			continue
 		}
 
@@ -130,25 +141,32 @@ func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, e
 
 		_, err = io.Copy(tmp, reader)
 		if err != nil {
-			errChan <- errors.New("couldn't copy file: " + err.Error())
+			tmp.Close()
+			_ = os.Remove(tmp.Name())
+			f.Close()
+			errChan <- fmt.Errorf("couldn't copy file %q: %w", file, err)
 			continue
 		}
 
 		// make sure the tmp file was successfully written to
 		if err := tmp.Close(); err != nil {
-			errChan <- errors.New("couldn't close file: " + err.Error())
+			_ = os.Remove(tmp.Name())
+			f.Close()
+			errChan <- fmt.Errorf("couldn't close temporary file: %w", err)
 			continue
 		}
 
 		// close the file we're reading from
 		if err := f.Close(); err != nil {
-			errChan <- err
+			_ = os.Remove(tmp.Name())
+			errChan <- fmt.Errorf("couldn't close source file %q: %w", file, err)
 			continue
 		}
 
 		// overwrite the original file with the temp file
 		if err := os.Rename(tmp.Name(), file); err != nil {
-			errChan <- errors.New("couldn't rename file: " + err.Error())
+			_ = os.Remove(tmp.Name())
+			errChan <- fmt.Errorf("couldn't rename temporary file to %q: %w", file, err)
 			continue
 		}
 	}

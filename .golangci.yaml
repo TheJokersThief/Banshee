@@ -1,26 +1,35 @@
+version: "2"
+
 run:
   timeout: 5m
 
 linters:
   enable:
-  - errorlint
-  - wastedassign
-  - errcheck
-  - megacheck
-  - ineffassign
-  - typecheck
-  - dogsled
-  - exportloopref
-  - misspell
-  - goconst
-  - gofmt
-  - nakedret
-  - nolintlint
-  - gocritic
-  - unparam
-  - unconvert
-  - unused
+    - errorlint
+    - wastedassign
+    - errcheck
+    - ineffassign
+    - dogsled
+    - misspell
+    - goconst
+    - nakedret
+    - nolintlint
+    - gocritic
+    - unparam
+    - unconvert
+    - unused
+    - gocyclo
+    - exhaustive
+  settings:
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+    gocyclo:
+      min-complexity: 15
 
-linters-settings:
-  errcheck:
-    exclude: errcheck-exclude.txt
+  exclusions:
+    rules:
+      # Test helpers where the parameter is always "git" by design.
+      - path: _test\.go
+        linters: [unparam, goconst]

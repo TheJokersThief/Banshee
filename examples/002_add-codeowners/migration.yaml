@@ -12,5 +12,5 @@ actions:
       command: "echo '* @example-org/engineering' > CODEOWNERS"
 
 pr_title: "Add CODEOWNERS"
-pr_body_file: "examples/001_add-codeowners/prbody.md"
+pr_body_file: "examples/002_add-codeowners/prbody.md"
 pr_as_drafts: false # If true, PRs will be created as drafts

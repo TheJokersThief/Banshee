@@ -1,15 +1,12 @@
 package progress
 
-// Returns a list of repos that haven't been migrated yet
-func (p *Progress) GetReposNotMigrated() []string {
-	reposForMigrating := []string{}
-	for repo, progress := range p.Config.Repos {
-		if !progress.Migrated {
-			reposForMigrating = append(reposForMigrating, repo)
-		}
-	}
+import "github.com/thejokersthief/banshee/v2/pkg/configs"
 
-	return reposForMigrating
+// GetReposNotMigrated returns a list of repos that haven't been migrated yet.
+func (p *Progress) GetReposNotMigrated() []string {
+	return p.reposWhere(func(rp *configs.RepoProgress) bool {
+		return !rp.Migrated
+	})
 }
 
 func (p *Progress) MarkMigrated(repo string) error {

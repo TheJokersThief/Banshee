@@ -26,22 +26,25 @@ type GithubConfig struct {
 	AppPrivateKeyPath string `fig:"app_private_key_filepath"`
 }
 
+type CacheReposConfig struct {
+	Enabled   bool   `fig:"enabled"`
+	Directory string `fig:"directory"`
+}
+
+type SaveProgressConfig struct {
+	Enabled   bool   `fig:"enabled"`
+	Directory string `fig:"directory"`
+	Batch     int64  `fig:"batch"`
+}
+
 type OptionsConfig struct {
 	LogLevel                         string   `fig:"log_level" default:"info"`
 	AssignCodeReviewerIfNoneAssigned bool     `fig:"assign_code_reviewer_if_none_assigned"`
 	ShowGitOutput                    bool     `fig:"show_git_output"`
 	IgnoreDirectories                []string `fig:"ignore_directories"`
 
-	CacheRepos struct {
-		Enabled   bool   `fig:"enabled"`
-		Directory string `fig:"directory"`
-	} `fig:"cache_repos"`
-
-	SaveProgress struct {
-		Enabled   bool   `fig:"enabled"`
-		Directory string `fig:"directory"`
-		Batch     int64  `fig:"batch"`
-	} `fig:"save_progress"`
+	CacheRepos   CacheReposConfig   `fig:"cache_repos"`
+	SaveProgress SaveProgressConfig `fig:"save_progress"`
 
 	Merges Merges `fig:"merging"`
 }
