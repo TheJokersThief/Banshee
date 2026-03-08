@@ -5,13 +5,10 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"time"
 
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/google/go-github/v63/github"
 	"github.com/sirupsen/logrus"
-	"github.com/thejokersthief/banshee/pkg/actions"
+	"github.com/thejokersthief/banshee/v2/pkg/actions"
 )
 
 // Perform a migration
@@ -34,15 +31,19 @@ func (b *Banshee) Migrate() error {
 
 	if b.Progress != nil {
 		repos = b.Progress.GetReposNotMigrated()
-		if (b.GlobalConfig.Options.SaveProgress.Batch) > 0 {
-			repos = repos[:b.GlobalConfig.Options.SaveProgress.Batch]
+		if batch := b.GlobalConfig.Options.SaveProgress.Batch; batch < int64(len(repos)) {
+			repos = repos[:batch]
 		}
 	}
 
 	if len(repos) == 0 {
-		return fmt.Errorf("Found no repos for migration. Maybe you need to check the progress file? %s", b.Progress.ProgressFile())
+		if b.Progress != nil {
+			return fmt.Errorf("Found no repos for migration. Maybe you need to check the progress file? %s", b.Progress.ProgressFile())
+		}
+		return fmt.Errorf("Found no repos for migration")
 	}
 
+	var migrationErrors []error
 	for _, repo := range repos {
 		// Check if repo is of the form <org>/<repo>
 		if !strings.Contains(repo, "/") {
@@ -51,10 +52,14 @@ func (b *Banshee) Migrate() error {
 
 		_, repoErr := b.handleRepo(b.log.WithField("repo", repo), org, repo)
 		if repoErr != nil {
-			return repoErr
+			b.log.WithField("repo", repo).Errorf("Migration failed: %v", repoErr)
+			migrationErrors = append(migrationErrors, fmt.Errorf("%s: %w", repo, repoErr))
 		}
-
 		b.log.Println("")
+	}
+	if len(migrationErrors) > 0 {
+		b.log.Errorf("%d repo(s) failed migration", len(migrationErrors))
+		return errors.Join(migrationErrors...)
 	}
 	return nil
 }
@@ -122,10 +127,10 @@ func (b *Banshee) getCacheRepoPath(org, repo string) string {
 
 // Handle the migration for a repo
 func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error) {
-	repoNameOnly := strings.ReplaceAll(repo, org+"/", "")
+	repoNameOnly := strings.TrimPrefix(repo, org+"/")
 
 	log.Info("Processing ", repo)
-	dir, gitRepo, defaultBranch, cloneErr := b.cloneRepo(log, org, repo)
+	dir, defaultBranch, cloneErr := b.cloneRepo(log, org, repo)
 	if cloneErr != nil {
 		return "", cloneErr
 	}
@@ -143,32 +148,21 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 			return "", actionErr
 		}
 
-		// Wait for half a second to let the git working tree catch up with changes
-		time.Sleep(500 * time.Millisecond)
-		tree, _ := gitRepo.Worktree()
-		state, _ := tree.Status()
-		// check if git dirty
-		if !state.IsClean() {
+		isClean, isCleanErr := b.GithubClient.GitIsClean(dir)
+		if isCleanErr != nil {
+			return "", isCleanErr
+		}
+		if !isClean {
 			changelog = append(changelog, "* "+action.Description)
 			log.Debug("Is dirty, committing changes: ", action.Description)
-			// if dirty, commit with action.Description as message
-			addErr := tree.AddGlob("./")
-			if addErr != nil {
-				return "", errors.New("adding error: " + addErr.Error())
+			if addErr := b.GithubClient.GitAddAll(dir); addErr != nil {
+				return "", addErr
 			}
-
-			_, commitErr := tree.Commit(action.Description, &git.CommitOptions{
-				Author: &object.Signature{
-					Name:  b.GlobalConfig.Defaults.GitName,
-					Email: b.GlobalConfig.Defaults.GitEmail,
-					When:  time.Now(),
-				},
-			})
-
-			if commitErr != nil {
+			if commitErr := b.GithubClient.GitCommit(dir, action.Description,
+				b.GlobalConfig.Defaults.GitName,
+				b.GlobalConfig.Defaults.GitEmail); commitErr != nil {
 				return "", commitErr
 			}
-
 			commitMade = true
 		}
 	}
@@ -178,7 +172,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 		return "", nil
 	}
 
-	htmlURL, err := b.pushChanges(changelog, gitRepo, org, repoNameOnly, defaultBranch)
+	htmlURL, err := b.pushChanges(changelog, dir, org, repoNameOnly, defaultBranch)
 	if err != nil {
 		return "", err
 	}
@@ -191,14 +185,14 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 	}
 
 	if htmlURL != "" {
-		log.Info("PR for ", repo, ": \033[32m", htmlURL, "\033[0m")
+		log.WithField("pr_url", htmlURL).Info("PR for ", repo)
 	}
 	return htmlURL, nil
 }
 
 // Push changes to GitHub and create a Pull Request
-func (b *Banshee) pushChanges(changelog []string, gitRepo *git.Repository, org, repoName, defaultBranch string) (string, error) {
-	pushError := b.GithubClient.Push(b.MigrationConfig.BranchName, gitRepo)
+func (b *Banshee) pushChanges(changelog []string, dir, org, repoName, defaultBranch string) (string, error) {
+	pushError := b.GithubClient.Push(b.MigrationConfig.BranchName, dir, org, repoName)
 	if pushError != nil {
 		return "", fmt.Errorf("push error: %w", pushError)
 	}
@@ -244,7 +238,7 @@ func (b *Banshee) formatChangelog(pr *github.PullRequest, changelog []string) (s
 	}
 
 	if pr != nil {
-		bodyText = []byte(*pr.Body)
+		bodyText = []byte(pr.GetBody())
 	}
 
 	changelogText := strings.Join(changelog, "\n")
@@ -257,33 +251,37 @@ func (b *Banshee) formatChangelog(pr *github.PullRequest, changelog []string) (s
 	return prBody, nil
 }
 
-// Clone a new repo, and fetch info about its default branch
-func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, *git.Repository, string, error) {
-	repoNameOnly := strings.ReplaceAll(repo, org+"/", "")
+// cloneRepo clones a repo and returns its dir and default branch.
+func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, string, error) {
+	repoNameOnly := strings.TrimPrefix(repo, org+"/")
 
 	var dir string
 	var mkDirErr error
+	var cacheCreated bool
 	if b.GlobalConfig.Options.CacheRepos.Enabled {
 		dir = b.getCacheRepoPath(org, repoNameOnly)
+		// Track whether we're creating a new dir so we can clean up on failure.
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			cacheCreated = true
+		}
 		mkDirErr = b.createCacheRepo(log, dir)
 	} else {
 		dir, mkDirErr = os.MkdirTemp(os.TempDir(), strings.ReplaceAll(repo, "/", "-"))
 	}
 	if mkDirErr != nil {
-		return "", nil, "", mkDirErr
+		return "", "", mkDirErr
 	}
 
-	logrus.Debug("Using ", dir)
+	log.Debug("Using ", dir)
 
-	gitRepo, cloneErr := b.GithubClient.ShallowClone(org, repoNameOnly, dir, b.MigrationConfig.BranchName)
+	defaultBranch, cloneErr := b.GithubClient.ShallowClone(org, repoNameOnly, dir, b.MigrationConfig.BranchName)
 	if cloneErr != nil {
-		return "", nil, "", fmt.Errorf("clone error: %w", cloneErr)
+		// CORE-I1: clean up a newly created cache dir on clone failure.
+		if b.GlobalConfig.Options.CacheRepos.Enabled && cacheCreated {
+			_ = os.RemoveAll(dir)
+		}
+		return "", "", fmt.Errorf("clone error: %w", cloneErr)
 	}
 
-	defaultBranch, defaultBranchErr := b.GithubClient.GetDefaultBranch(org, repoNameOnly)
-	if defaultBranchErr != nil {
-		return "", nil, "", defaultBranchErr
-	}
-
-	return dir, gitRepo, defaultBranch, nil
+	return dir, defaultBranch, nil
 }

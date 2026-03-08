@@ -1,136 +1,25 @@
 package github
 
-import (
-	"errors"
-	"strings"
-
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/plumbing"
-	gitHttp "github.com/go-git/go-git/v5/plumbing/transport/http"
-)
-
-const defaultRemote = "origin"
-
-func (gc *GithubClient) auth() *gitHttp.BasicAuth {
-	if gc.tokenRefreshItr != nil {
-		accessToken, tokenRefreshErr := gc.tokenRefreshItr.Token(gc.ctx)
-		if tokenRefreshErr != nil {
-			gc.log.Error(tokenRefreshErr)
-		} else {
-			// Only update the access token if refreshing was successful
-			gc.accessToken = accessToken
-		}
+// Push pushes the current HEAD to the remote.
+func (gc *GithubClient) Push(branch, dir, org, repoName string) error {
+	tokenURL, err := gc.freshTokenURL(org, repoName)
+	if err != nil {
+		return err
 	}
-
-	return &gitHttp.BasicAuth{
-		Username: "placeholderUsername", // anything except an empty string
-		Password: gc.accessToken,
-	}
+	return gc.git.Push(dir, tokenURL, branch)
 }
 
-// Checkout a local branch, switching the working tree
-func (gc *GithubClient) Checkout(branch string, gitRepo *git.Repository, create bool) error {
-	wt, wtErr := gitRepo.Worktree()
-	if wtErr != nil {
-		return wtErr
-	}
-
-	gc.log.Debug("Checking out ", branch)
-	checkoutErr := wt.Checkout(
-		&git.CheckoutOptions{
-			Branch: plumbing.NewBranchReferenceName(branch),
-			Create: create,
-			Force:  true,
-		},
-	)
-
-	if checkoutErr != nil && strings.Contains(checkoutErr.Error(), "already exists") {
-		checkoutErr = wt.Checkout(
-			&git.CheckoutOptions{
-				Branch: plumbing.NewBranchReferenceName(branch),
-				Create: false,
-				Force:  true,
-			},
-		)
-	}
-
-	if checkoutErr != nil {
-		return checkoutErr
-	}
-
-	return nil
+// GitIsClean reports whether the working tree has no uncommitted changes.
+func (gc *GithubClient) GitIsClean(dir string) (bool, error) {
+	return gc.git.IsClean(dir)
 }
 
-// Fetch from remote branch
-func (gc *GithubClient) Fetch(branch string, gitRepo *git.Repository) error {
-	gc.log.Debug("Fetching references for ", plumbing.NewBranchReferenceName(branch))
-	fetchErr := gitRepo.Fetch(&git.FetchOptions{
-		Progress: gc.Writer,
-		Auth:     gc.auth(),
-		RefSpecs: []config.RefSpec{
-			config.RefSpec(plumbing.NewBranchReferenceName(branch) + ":" + plumbing.NewRemoteReferenceName(defaultRemote, branch)),
-		},
-		Force: true,
-	})
-
-	// "Couldn't find remote ref" happens if the branch hasn't been created on the remote
-	if fetchErr != nil && (!errors.Is(fetchErr, git.NoErrAlreadyUpToDate) && !strings.Contains(fetchErr.Error(), "couldn't find remote ref")) {
-		return fetchErr
-	}
-	return nil
+// GitAddAll stages all changes in dir.
+func (gc *GithubClient) GitAddAll(dir string) error {
+	return gc.git.AddAll(dir)
 }
 
-// Pull from remote branch
-func (gc *GithubClient) Pull(branch string, gitRepo *git.Repository) error {
-	wt, wtErr := gitRepo.Worktree()
-	if wtErr != nil {
-		return wtErr
-	}
-
-	gc.log.Debug("Resetting ", plumbing.NewBranchReferenceName(branch), " and clearing any unstaged changes")
-	// Do a hard reset before pulling to ensure we start from a clean stage
-	hash, resolveErr := gitRepo.ResolveRevision(plumbing.Revision("HEAD"))
-	if resolveErr != nil {
-		return resolveErr
-	}
-
-	resetErr := wt.Reset(&git.ResetOptions{Commit: *hash, Mode: git.HardReset})
-	if resetErr != nil {
-		return resetErr
-	}
-
-	gc.log.Debug("Pulling ", plumbing.NewBranchReferenceName(branch))
-	pullErr := wt.Pull(&git.PullOptions{
-		Progress:     gc.Writer,
-		RemoteName:   "origin",
-		Auth:         gc.auth(),
-		SingleBranch: true,
-		Force:        true,
-	})
-
-	// "reference not found" also happens if the remote branch hasn't been created yet
-	if pullErr != nil && (!errors.Is(pullErr, git.NoErrAlreadyUpToDate) && pullErr.Error() != "reference not found") {
-		return pullErr
-	}
-
-	return nil
-}
-
-// Push to remote branch
-func (gc *GithubClient) Push(branch string, gitRepo *git.Repository) error {
-	gc.log.Debug("Pushing changes")
-
-	pushErr := gitRepo.Push(
-		&git.PushOptions{
-			RemoteName: "origin",
-			Auth:       gc.auth(),
-			// Force:      true,
-		},
-	)
-
-	if pushErr != nil && !errors.Is(pushErr, git.NoErrAlreadyUpToDate) {
-		return pushErr
-	}
-	return nil
+// GitCommit creates a commit with the given message and author identity.
+func (gc *GithubClient) GitCommit(dir, message, name, email string) error {
+	return gc.git.Commit(dir, message, name, email)
 }

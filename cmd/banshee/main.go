@@ -9,8 +9,8 @@ import (
 	"github.com/alecthomas/kong"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/kkyr/fig"
-	"github.com/thejokersthief/banshee/pkg/configs"
-	"github.com/thejokersthief/banshee/pkg/core"
+	"github.com/thejokersthief/banshee/v2/pkg/configs"
+	"github.com/thejokersthief/banshee/v2/pkg/core"
 )
 
 var Version = "unset"

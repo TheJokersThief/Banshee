@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/thejokersthief/banshee/pkg/configs"
+	"github.com/thejokersthief/banshee/v2/pkg/configs"
 )
 
 func TestOnlyOneRepoChoice(t *testing.T) {

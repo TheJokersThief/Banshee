@@ -5,16 +5,35 @@ import (
 	"errors"
 	"os"
 
+	gogithub "github.com/google/go-github/v63/github"
 	"github.com/sirupsen/logrus"
-	"github.com/thejokersthief/banshee/pkg/configs"
-	localGH "github.com/thejokersthief/banshee/pkg/github"
-	"github.com/thejokersthief/banshee/pkg/progress"
+	"github.com/thejokersthief/banshee/v2/pkg/configs"
+	localGH "github.com/thejokersthief/banshee/v2/pkg/github"
+	"github.com/thejokersthief/banshee/v2/pkg/progress"
 )
+
+// githubClient is the subset of *localGH.GithubClient used by Banshee.
+// Defined as an interface to allow injection of test doubles.
+type githubClient interface {
+	ShallowClone(org, repoName, dir, migrationBranchName string) (string, error)
+	GetDefaultBranch(owner, repo string) (string, error)
+	GitIsClean(dir string) (bool, error)
+	GitAddAll(dir string) error
+	GitCommit(dir, message, name, email string) error
+	Push(branch, dir, org, repoName string) error
+	FindPullRequest(org, repo, baseBranch, headBranch string) (*gogithub.PullRequest, error)
+	CreatePullRequest(org, repo, title, body, baseBranch, mergeBranch string, asDraft bool) (string, error)
+	UpdatePullRequest(pr *gogithub.PullRequest, body string) error
+	MergePullRequest(pr *gogithub.PullRequest) error
+	GetAllRepos(owner string) ([]string, error)
+	GetMatchingRepos(query string) ([]string, error)
+	GetMatchingPRs(query string) ([]*gogithub.PullRequest, error)
+}
 
 type Banshee struct {
 	GlobalConfig    *configs.GlobalConfig
 	MigrationConfig *configs.MigrationConfig
-	GithubClient    *localGH.GithubClient
+	GithubClient    githubClient
 	Progress        *progress.Progress
 
 	log *logrus.Entry
@@ -79,7 +98,7 @@ func (b *Banshee) getOrgName() string {
 func (b *Banshee) createCacheRepo(log *logrus.Entry, path string) error {
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		log.Debug("Creating cache directory ", path)
-		err := os.Mkdir(path, os.ModePerm)
+		err := os.MkdirAll(path, os.ModePerm)
 		if err != nil {
 			return err
 		}
