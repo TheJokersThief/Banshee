@@ -70,13 +70,13 @@ func (r *YAML) Run(log *logrus.Entry) error {
 		}
 
 		switch r.SubAction {
-		case "delete":
+		case subActionDelete:
 			delete(*parent, lastKey)
-		case "replace":
+		case subActionReplace:
 			(*parent)[lastKey] = r.New
-		case "add":
+		case subActionAdd:
 			(*parent)[lastKey] = r.New
-		case "list_append":
+		case subActionListAppend:
 			if parentList, ok := (*parent)[lastKey].([]interface{}); ok {
 				(*parent)[lastKey] = append(parentList, r.New)
 			}

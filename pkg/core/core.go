@@ -35,6 +35,7 @@ type Banshee struct {
 	MigrationConfig *configs.MigrationConfig
 	GithubClient    githubClient
 	Progress        *progress.Progress
+	DryRun          bool
 
 	log *logrus.Entry
 	ctx context.Context

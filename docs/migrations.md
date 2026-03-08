@@ -4,15 +4,18 @@
 <!-- TOC -->
 
 - [Overview](#overview)
+- [Dry-run mode](#dry-run-mode)
 - [Actions](#actions)
   - [Add file](#add-file)
   - [Find and replace](#find-and-replace)
   - [Run commands](#run-commands)
   - [YAML](#yaml)
+  - [JSON](#json)
 
 <!-- /TOC -->
 
 # Overview
+
 
 Every migration performs a set of actions on the repo. Actions do things like find and replace text, or run a premade command/script. If the action changed anything, we push the changes to a branch and cut a new Pull Request on GitHub to propose the changes to codeowners.
 
@@ -21,6 +24,23 @@ Migrations should be treated as idempotent, so that you can run the same migrati
 Below is high level flow diagram of how a migration works.
 
 <img src="../images/migration-flow.png" />
+
+# Dry-run mode
+
+Pass `--dry-run` (short: `-d`) to the `migrate` command to preview what would happen without making any permanent changes:
+
+```
+banshee migrate --dry-run migration.yaml
+banshee migrate -d migration.yaml
+```
+
+In dry-run mode Banshee:
+- Clones every target repo and applies all actions exactly as normal
+- Logs `[dry-run] Would commit: <description>` for each action that produced changes, instead of creating a commit
+- Logs `[dry-run] Would push branch and open/update PR for <repo>` instead of pushing or touching GitHub
+- Does **not** update the progress file, so re-running without `--dry-run` will process the full repo list again
+
+Dry-run is safe to use in CI to audit what a migration would change before merging the migration config.
 
 # Actions
 
@@ -120,9 +140,52 @@ A helper for making YAML file changes.
     yamlpath: "firstlevel.secondlevel"
 - action: yaml
   description: "Change a YAML file"
-  input: 
+  input:
     glob: "example.yaml"
     sub_action: list_append
     yamlpath: "firstlevel.secondlevel"
     value: "new item"
+```
+
+## JSON
+
+A helper for making JSON file changes. Preserves key order and formatting using raw-byte manipulation.
+
+|        Key | Description                                                          | Default        |
+| ---------: | -------------------------------------------------------------------- | -------------- |
+|       glob | The glob pattern for file matching                                   | `**/*.json`    |
+|   jsonpath | A dot-notation path to the key being updated/added/deleted           | –              |
+| sub_action | The action to perform (`replace`, `add`, `delete`, `list_append`)   | –              |
+|      value | The value to set (omit for `delete`)                                 | –              |
+
+`list_append` requires the target path to already exist and be an array; it logs an error and skips the file otherwise.
+
+```yaml
+- action: json
+  description: "Bump package version"
+  input:
+    glob: "package.json"
+    sub_action: replace
+    jsonpath: "version"
+    value: "2.0.0"
+- action: json
+  description: "Add homepage field"
+  input:
+    glob: "package.json"
+    sub_action: add
+    jsonpath: "homepage"
+    value: "https://example.com"
+- action: json
+  description: "Remove deprecated field"
+  input:
+    glob: "**/*.json"
+    sub_action: delete
+    jsonpath: "scripts.prepublish"
+- action: json
+  description: "Add new lint script to all packages"
+  input:
+    glob: "**/package.json"
+    sub_action: list_append
+    jsonpath: "keywords"
+    value: "oss"
 ```

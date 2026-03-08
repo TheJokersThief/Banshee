@@ -8,6 +8,13 @@ import (
 	"github.com/thejokersthief/banshee/v2/pkg/configs"
 )
 
+const (
+	subActionReplace    = "replace"
+	subActionAdd        = "add"
+	subActionDelete     = "delete"
+	subActionListAppend = "list_append"
+)
+
 type ActionRunner interface {
 	Run(log *logrus.Entry) error
 }
@@ -26,6 +33,8 @@ func RunAction(log *logrus.Entry, globalConfig *configs.GlobalConfig, actionID s
 		action = NewRunCommandAction(dir, description, input, globalConfig)
 	case "yaml":
 		action = NewYAMLAction(dir, description, input)
+	case "json":
+		action = NewJSONAction(dir, description, input)
 	default:
 		return fmt.Errorf("unrecognised command: %s", actionID)
 	}
