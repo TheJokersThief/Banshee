@@ -1,7 +1,0 @@
-// These exclusions are now configured inline in .golangci.yaml under
-// linters-settings.errcheck.exclude-functions. This file is kept for
-// reference only and is no longer read by golangci-lint.
-//
-// Original entries (justified: simplify defer close patterns):
-// os.Close
-// (*os.File).Close
