@@ -7,24 +7,21 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bradleyfalzon/ghinstallation/v2"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
 	"github.com/google/go-github/v63/github"
 	"github.com/sirupsen/logrus"
-	"github.com/thejokersthief/banshee/pkg/configs"
+	"github.com/thejokersthief/banshee/v2/pkg/configs"
+	"github.com/thejokersthief/banshee/v2/pkg/gitcli"
 	"golang.org/x/oauth2"
 )
 
 type GithubClient struct {
 	Client       *github.Client
-	Writer       sideband.Progress
 	GlobalConfig *configs.GlobalConfig
 
+	git             gitcli.Git
 	log             *logrus.Entry
 	tokenRefreshItr *ghinstallation.Transport
 	accessToken     string
@@ -38,18 +35,12 @@ var (
 
 // Build a new GitHub client using the global config
 func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context, log *logrus.Entry) (*GithubClient, error) {
-
-	var showOutput sideband.Progress
-	if globalConf.Options.ShowGitOutput {
-		showOutput = os.Stdout
-	}
-
 	ghClient := &GithubClient{
 		GlobalConfig:    &globalConf,
 		ctx:             ctx,
 		log:             log.WithField("client", "GithubClient"),
 		tokenRefreshItr: nil,
-		Writer:          showOutput,
+		git:             gitcli.NewExecGit(globalConf.Options.ShowGitOutput, log),
 	}
 
 	if globalConf.Github.UseGithubApp {
@@ -109,67 +100,63 @@ func newGithubAppClient(globalConf configs.GlobalConfig, ghClient *GithubClient,
 	return ghClient, nil
 }
 
-// Clone the smallest version of a repo we can
-func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName string) (*git.Repository, error) {
-	defaultBranch, _ := gc.GetDefaultBranch(org, repoName)
-	gitURL := fmt.Sprintf("https://github.com/%s/%s.git", org, repoName)
+// freshTokenURL returns a token-embedded HTTPS URL, refreshing the token for GitHub Apps.
+func (gc *GithubClient) freshTokenURL(org, repoName string) (string, error) {
+	if gc.tokenRefreshItr != nil {
+		token, err := gc.tokenRefreshItr.Token(gc.ctx)
+		if err != nil {
+			return "", fmt.Errorf("refreshing GitHub App token: %w", err)
+		}
+		gc.accessToken = token
+	}
+	return fmt.Sprintf("https://x-access-token:%s@github.com/%s/%s.git", gc.accessToken, org, repoName), nil
+}
 
-	var repo *git.Repository
-	var plainOpenErr error
+// ShallowClone clones (or opens + pulls) a repo and checks out the migration branch.
+// It returns the default branch name so callers do not need a separate GetDefaultBranch call.
+func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName string) (string, error) {
+	defaultBranch, err := gc.GetDefaultBranch(org, repoName)
+	if err != nil {
+		return "", err
+	}
+
+	tokenURL, err := gc.freshTokenURL(org, repoName)
+	if err != nil {
+		return "", err
+	}
+
 	if _, err := os.Stat(dir + "/.git"); errors.Is(err, os.ErrNotExist) {
-		// If the directory doesn't exist, clone the repo into it
-		gc.log.Info("Cloning ", gitURL, " [", defaultBranch, "]...")
-		repo, plainOpenErr = git.PlainClone(dir, false, &git.CloneOptions{
-			Progress:      gc.Writer,
-			URL:           gitURL,
-			Auth:          gc.auth(),
-			ReferenceName: plumbing.NewBranchReferenceName(defaultBranch),
-			SingleBranch:  true,
-			// Depth:         1, // Unfortunately there's an issue in go-git that means using depth breaks the working tree
-		})
+		gc.log.Info("Cloning ", repoName, " [", defaultBranch, "]...")
+		if err := gc.git.Clone(tokenURL, dir, defaultBranch, 1); err != nil {
+			return "", err
+		}
 	} else {
 		gc.log.Info("Opening ", dir, " [", defaultBranch, "]...")
-		repo, plainOpenErr = git.PlainOpen(dir)
-
-		// Checkout the default branch
-		checkoutErr := gc.Checkout(defaultBranch, repo, false)
-		if checkoutErr != nil {
-			return nil, checkoutErr
+		if err := gc.git.Checkout(dir, defaultBranch, false); err != nil {
+			return "", err
 		}
-
-		// Pull any changes to the default branch since we last cloned
-		pullErr := gc.Pull(defaultBranch, repo)
-		if pullErr != nil && (!errors.Is(pullErr, git.NoErrAlreadyUpToDate)) {
-			if strings.Contains(pullErr.Error(), "worktree contains unstaged changes") {
-				// go-git just straight up can't recover if the worktree has unstaged changes, so we scorch the earth instead
-				gc.log.Error("Encountered unrecoverable worktree issue, deleting ", dir, " and recloning repo")
-				os.RemoveAll(dir)
-				return gc.ShallowClone(org, repoName, dir, migrationBranchName)
-			}
-			return nil, pullErr
+		if err := gc.git.Pull(dir, tokenURL, defaultBranch); err != nil {
+			return "", err
 		}
 	}
 
-	if plainOpenErr != nil {
-		return nil, plainOpenErr
+	if err := gc.git.Checkout(dir, migrationBranchName, true); err != nil {
+		return "", err
 	}
 
-	checkoutErr := gc.Checkout(migrationBranchName, repo, true)
-	if checkoutErr != nil {
-		return nil, checkoutErr
+	// Refresh token before migration-branch network ops.
+	migURL, err := gc.freshTokenURL(org, repoName)
+	if err != nil {
+		return "", err
+	}
+	if err := gc.git.Fetch(dir, migURL, migrationBranchName); err != nil {
+		return "", err
+	}
+	if err := gc.git.Pull(dir, migURL, migrationBranchName); err != nil {
+		return "", err
 	}
 
-	fetchErr := gc.Fetch(migrationBranchName, repo)
-	if fetchErr != nil {
-		return nil, fetchErr
-	}
-
-	pullErr := gc.Pull(migrationBranchName, repo)
-	if pullErr != nil {
-		return nil, pullErr
-	}
-
-	return repo, nil
+	return defaultBranch, nil
 }
 
 // Get the default branch set for the repo on GitHub

@@ -3,8 +3,6 @@ package github
 
 import (
 	"errors"
-	"fmt"
-	"math"
 	"sync"
 
 	"github.com/avast/retry-go/v4"
@@ -57,8 +55,9 @@ type PRDataWorker struct {
 	client    *GithubClient
 	waitGroup *sync.WaitGroup
 	issues    chan *github.Issue
-	results   chan *github.PullRequest
-	errChan   chan error
+	mu        sync.Mutex
+	results   []*github.PullRequest
+	errs      []error
 }
 
 func NewPRDataWorker(client *GithubClient) *PRDataWorker {
@@ -66,8 +65,6 @@ func NewPRDataWorker(client *GithubClient) *PRDataWorker {
 		client:    client,
 		waitGroup: &sync.WaitGroup{},
 		issues:    make(chan *github.Issue, 64),
-		results:   make(chan *github.PullRequest, math.MaxInt32), // This covers 4,294,967,296 PRs. If we ever reach that limit, we'll need to re-evaluate
-		errChan:   make(chan error, math.MaxInt32),
 	}
 }
 
@@ -92,40 +89,25 @@ func (w *PRDataWorker) prDataWorker() {
 	for issue := range w.issues {
 		repoOwner, repoName := w.client.getRepoNameFromURL(*issue.HTMLURL)
 		pullRequest, prErr := w.client.GetPR(repoOwner, repoName, *issue.Number)
+		w.mu.Lock()
 		if prErr != nil {
-			w.errChan <- prErr
-			continue
+			w.errs = append(w.errs, prErr)
+		} else {
+			w.results = append(w.results, pullRequest)
 		}
-
-		w.results <- pullRequest
+		w.mu.Unlock()
 	}
 }
 
 // Assemble our pull requests for returning
 func (w *PRDataWorker) processResults() []*github.PullRequest {
-	pullRequests := []*github.PullRequest{}
-	totalResults := len(w.results)
-	for resultIndex := 0; resultIndex < totalResults; resultIndex++ {
-		pr := <-w.results
-		pullRequests = append(pullRequests, pr)
-	}
-
-	close(w.results)
-	return pullRequests
+	return w.results
 }
 
 // If there are any errors, join them into a single error and return the error
 func (w *PRDataWorker) processErrors() error {
-	if len(w.errChan) > 0 {
-		finalError := fmt.Errorf("")
-		totalErrs := len(w.errChan)
-		for i := 0; i < totalErrs; i++ {
-			prGetErr := <-w.errChan
-			finalError = errors.Join(finalError, prGetErr)
-		}
-		return finalError
+	if len(w.errs) == 0 {
+		return nil
 	}
-	close(w.errChan)
-
-	return nil
+	return errors.Join(w.errs...)
 }

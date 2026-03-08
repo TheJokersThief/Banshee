@@ -21,13 +21,15 @@ var (
 
 // Checks if the error should be retried or not
 func checkIfRecoverable(err error) error {
+	if err == nil {
+		return nil
+	}
 	var rateLimitErr *github.RateLimitError
 	isRateLimit := errors.As(err, &rateLimitErr)
 
 	var abuseErr *github.AbuseRateLimitError
 	isAbuseLimit := errors.As(err, &abuseErr)
 
-	// If it is one of these errors, it can be retried
 	if isRateLimit || isAbuseLimit {
 		logrus.Info("Got rate limited, retrying")
 		return err

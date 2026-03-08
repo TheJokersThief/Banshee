@@ -17,7 +17,7 @@ const (
 // Perform a migration
 func (b *Banshee) List(state string, format string) error {
 
-	b.log = logrus.WithField("command", "migrate")
+	b.log = logrus.WithField("command", "list")
 	if validationErr := b.validateMigrateCommand(); validationErr != nil {
 		return validationErr
 	}

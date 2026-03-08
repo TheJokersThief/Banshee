@@ -7,7 +7,7 @@ import (
 	"os/exec"
 
 	"github.com/sirupsen/logrus"
-	"github.com/thejokersthief/banshee/pkg/configs"
+	"github.com/thejokersthief/banshee/v2/pkg/configs"
 )
 
 const defaultShell = "bash"

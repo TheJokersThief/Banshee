@@ -11,7 +11,7 @@ const (
 // Perform a migration
 func (b *Banshee) MergeApproved() error {
 
-	b.log = logrus.WithField("command", "migrate")
+	b.log = logrus.WithField("command", "merge")
 
 	if validationErr := b.validateMigrateCommand(); validationErr != nil {
 		return validationErr
