@@ -1,38 +1,39 @@
+version: "2"
+
 run:
   timeout: 5m
 
 linters:
   enable:
-  - errorlint
-  - wastedassign
-  - errcheck
-  - ineffassign
-  - typecheck
-  - dogsled
-  - misspell
-  - goconst
-  - gofmt
-  - nakedret
-  - nolintlint
-  - gocritic
-  - unparam
-  - unconvert
-  - unused
-  - gocyclo
-  - exhaustive
-  - wrapcheck
-
-linters-settings:
-  errcheck:
-    exclude-functions:
-      - (io.Closer).Close
-      - (*os.File).Close
-  gocyclo:
-    min-complexity: 15
-  wrapcheck:
-    ignoreSigs:
-      - .Errorf(
-      - errors.New(
-      - errors.Unwrap(
-      - .Wrap(
-      - .Wrapf(
+    - errorlint
+    - wastedassign
+    - errcheck
+    - ineffassign
+    - typecheck
+    - dogsled
+    - misspell
+    - goconst
+    - gofmt
+    - nakedret
+    - nolintlint
+    - gocritic
+    - unparam
+    - unconvert
+    - unused
+    - gocyclo
+    - exhaustive
+    - wrapcheck
+  settings:
+    errcheck:
+      exclude-functions:
+        - (io.Closer).Close
+        - (*os.File).Close
+    gocyclo:
+      min-complexity: 15
+    wrapcheck:
+      ignoreSigs:
+        - .Errorf(
+        - errors.New(
+        - errors.Unwrap(
+        - .Wrap(
+        - .Wrapf(
