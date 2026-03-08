@@ -36,3 +36,4 @@ repos.cache/
 
 # Git worktrees
 .worktrees/
+.claude/
