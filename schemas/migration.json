@@ -70,6 +70,9 @@
                         },
                         {
                             "$ref": "#/definitions/YAMLInput"
+                        },
+                        {
+                            "$ref": "#/definitions/JSONInput"
                         }
                     ]
                 }
@@ -128,6 +131,18 @@
             },
             "required": ["glob", "sub_action", "yamlpath"],
             "title": "YAMLInput"
+        },
+        "JSONInput": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "glob":       { "type": "string" },
+                "sub_action": { "type": "string", "enum": ["replace", "add", "delete", "list_append"] },
+                "jsonpath":   { "type": "string" },
+                "value":      { "type": "string" }
+            },
+            "required": ["sub_action", "jsonpath"],
+            "title": "JSONInput"
         }
     }
 }
