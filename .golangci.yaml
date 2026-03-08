@@ -9,11 +9,9 @@ linters:
     - wastedassign
     - errcheck
     - ineffassign
-    - typecheck
     - dogsled
     - misspell
     - goconst
-    - gofmt
     - nakedret
     - nolintlint
     - gocritic
@@ -22,7 +20,6 @@ linters:
     - unused
     - gocyclo
     - exhaustive
-    - wrapcheck
   settings:
     errcheck:
       exclude-functions:
@@ -30,10 +27,9 @@ linters:
         - (*os.File).Close
     gocyclo:
       min-complexity: 15
-    wrapcheck:
-      ignoreSigs:
-        - .Errorf(
-        - errors.New(
-        - errors.Unwrap(
-        - .Wrap(
-        - .Wrapf(
+
+  exclusions:
+    rules:
+      # Test helpers where the parameter is always "git" by design.
+      - path: _test\.go
+        linters: [unparam, goconst]

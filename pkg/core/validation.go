@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	OnlyUseOneErr = errors.New("You may only use one of `search_query`, `all_repos_in_org` or `repos`")
-	MustUseOneErr = errors.New("You must specify one of `search_query`, `all_repos_in_org` or `repos`")
+	ErrOnlyUseOne = errors.New("may only use one of `search_query`, `all_repos_in_org` or `repos`")
+	ErrMustUseOne = errors.New("must specify one of `search_query`, `all_repos_in_org` or `repos`")
 )
 
 func (b *Banshee) OnlyOneRepoChoice() error {
@@ -19,14 +19,14 @@ func (b *Banshee) OnlyOneRepoChoice() error {
 	for _, option := range []bool{usingRepolist, queryNotEmpty, useAllRepos} {
 		if option {
 			if alreadySet {
-				return OnlyUseOneErr
+				return ErrOnlyUseOne
 			}
 			alreadySet = true
 		}
 	}
 
-	if !(usingRepolist || queryNotEmpty || useAllRepos) {
-		return MustUseOneErr
+	if !usingRepolist && !queryNotEmpty && !useAllRepos {
+		return ErrMustUseOne
 	}
 
 	return nil

@@ -142,7 +142,7 @@ func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, e
 		_, err = io.Copy(tmp, reader)
 		if err != nil {
 			tmp.Close()
-			os.Remove(tmp.Name())
+			_ = os.Remove(tmp.Name())
 			f.Close()
 			errChan <- fmt.Errorf("couldn't copy file %q: %w", file, err)
 			continue
@@ -150,7 +150,7 @@ func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, e
 
 		// make sure the tmp file was successfully written to
 		if err := tmp.Close(); err != nil {
-			os.Remove(tmp.Name())
+			_ = os.Remove(tmp.Name())
 			f.Close()
 			errChan <- fmt.Errorf("couldn't close temporary file: %w", err)
 			continue
@@ -158,14 +158,14 @@ func (r *Replace) findAndReplaceWorker(log *logrus.Entry, files <-chan string, e
 
 		// close the file we're reading from
 		if err := f.Close(); err != nil {
-			os.Remove(tmp.Name())
+			_ = os.Remove(tmp.Name())
 			errChan <- fmt.Errorf("couldn't close source file %q: %w", file, err)
 			continue
 		}
 
 		// overwrite the original file with the temp file
 		if err := os.Rename(tmp.Name(), file); err != nil {
-			os.Remove(tmp.Name())
+			_ = os.Remove(tmp.Name())
 			errChan <- fmt.Errorf("couldn't rename temporary file to %q: %w", file, err)
 			continue
 		}

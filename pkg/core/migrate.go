@@ -166,7 +166,7 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 
 	if !b.GlobalConfig.Options.CacheRepos.Enabled {
 		// If we're not caching repos, delete the repo directory when this function returns
-		defer os.RemoveAll(dir)
+		defer func() { _ = os.RemoveAll(dir) }()
 	}
 
 	changelog := []string{}

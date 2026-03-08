@@ -85,7 +85,7 @@ func main() {
 		cloneErr := banshee.Clone()
 		handleErr(cloneErr)
 	default:
-		printFatalError(fmt.Errorf("unknown command: %q\nRun 'banshee --help' to see available commands.", ctx.Command()))
+		printFatalError(fmt.Errorf("unknown command: %q\nRun 'banshee --help' to see available commands", ctx.Command()))
 	}
 }
 
@@ -94,7 +94,7 @@ func parseConfig[C configs.Configs](conf C, file string, envKey string) C {
 	dir, base := getFilePieces(file)
 	configParseError := fig.Load(&conf, fig.File(base), fig.Dirs(dir), fig.UseEnv(envKey))
 	if configParseError != nil {
-		printFatalError(fmt.Errorf("failed to load config file %q: %w\nCheck that the file exists and is valid YAML.", file, configParseError))
+		printFatalError(fmt.Errorf("failed to load config file %q: %w\nCheck that the file exists and is valid YAML", file, configParseError))
 	}
 	return conf
 }
@@ -111,7 +111,7 @@ func createBanshee(globalConfig configs.GlobalConfig, migrationConfigPath string
 	globalConfig.MigrationDir = path.Dir(absPath)
 	banshee, initErr := core.NewBanshee(globalConfig, migrationConfig)
 	if initErr != nil {
-		printFatalError(fmt.Errorf("failed to initialise banshee: %w\nCheck your global config for valid GitHub credentials and log level settings.", initErr))
+		printFatalError(fmt.Errorf("failed to initialise banshee: %w\nCheck your global config for valid GitHub credentials and log level settings", initErr))
 	}
 
 	return banshee

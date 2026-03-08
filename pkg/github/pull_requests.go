@@ -105,7 +105,7 @@ func (gc *GithubClient) AssignDefaultReviewer(pr *github.PullRequest) error {
 	}
 
 	gc.log.WithFields(logrus.Fields{"Teams": reviewers.Teams, "Users": reviewers.Users}).Debug("Checking for reviewers")
-	if !(len(reviewers.Teams) > 0 || len(reviewers.Users) > 0) {
+	if len(reviewers.Teams) == 0 && len(reviewers.Users) == 0 {
 		// If there are no reviewers, assign some
 		reviewRequest := github.ReviewersRequest{
 			TeamReviewers: []string{gc.GlobalConfig.Defaults.CodeReviewer},

@@ -19,33 +19,33 @@ func TestOnlyOneRepoChoice(t *testing.T) {
 		wantErr    error
 	}{
 		{
-			name:    "none set returns MustUseOneErr",
+			name:    "none set returns ErrMustUseOne",
 			migConf: configs.MigrationConfig{},
-			wantErr: MustUseOneErr,
+			wantErr: ErrMustUseOne,
 		},
 		{
-			name: "search_query and list_of_repos returns OnlyUseOneErr",
+			name: "search_query and list_of_repos returns ErrOnlyUseOne",
 			migConf: configs.MigrationConfig{
 				SearchQuery: "Test query",
 				ListOfRepos: []string{"repo_name"},
 			},
-			wantErr: OnlyUseOneErr,
+			wantErr: ErrOnlyUseOne,
 		},
 		{
-			name: "list_of_repos and all_repos_in_org returns OnlyUseOneErr",
+			name: "list_of_repos and all_repos_in_org returns ErrOnlyUseOne",
 			migConf: configs.MigrationConfig{
 				ListOfRepos:   []string{"repo_name"},
 				AllReposInOrg: true,
 			},
-			wantErr: OnlyUseOneErr,
+			wantErr: ErrOnlyUseOne,
 		},
 		{
-			name: "search_query and all_repos_in_org returns OnlyUseOneErr",
+			name: "search_query and all_repos_in_org returns ErrOnlyUseOne",
 			migConf: configs.MigrationConfig{
 				SearchQuery:   "Test query",
 				AllReposInOrg: true,
 			},
-			wantErr: OnlyUseOneErr,
+			wantErr: ErrOnlyUseOne,
 		},
 		{
 			name: "only search_query returns no error",
