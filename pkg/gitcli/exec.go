@@ -169,9 +169,14 @@ func (g *ExecGit) AddAll(dir string) error {
 	return err
 }
 
-// Commit creates a commit with the given message and author identity.
+// Commit creates a commit with the given message and author/committer identity.
+// -c user.name/email sets the committer; --author sets the author explicitly.
 func (g *ExecGit) Commit(dir, message, authorName, authorEmail string) error {
 	author := fmt.Sprintf("%s <%s>", authorName, authorEmail)
-	_, err := g.run(dir, "commit", "--author", author, "-m", message)
+	_, err := g.run(dir,
+		"-c", "user.name="+authorName,
+		"-c", "user.email="+authorEmail,
+		"commit", "--author", author, "-m", message,
+	)
 	return err
 }
