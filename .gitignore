@@ -33,3 +33,6 @@ out
 *.test.yaml
 repos.cache/
 *.pem
+
+# Git worktrees
+.worktrees/
