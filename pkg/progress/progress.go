@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gosimple/slug"
@@ -19,6 +20,7 @@ type Progress struct {
 	Config *configs.ProgressConfig
 
 	log *logrus.Entry
+	mu  sync.Mutex
 }
 
 func GenerateProgressID(org, branchName string) string {
@@ -37,6 +39,9 @@ func NewProgress(log *logrus.Entry, progressDir, progressID string) (*Progress, 
 }
 
 func (p *Progress) AddRepos(repos []string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	for _, repo := range repos {
 		p.Config.Repos[repo] = &configs.RepoProgress{}
 	}
@@ -47,6 +52,9 @@ func (p *Progress) AddRepos(repos []string) {
 }
 
 func (p *Progress) GetRepos() []string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
 	repos := []string{}
 	for repo := range p.Config.Repos {
 		repos = append(repos, repo)

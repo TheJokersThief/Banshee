@@ -44,7 +44,7 @@ type Banshee struct {
 	ctx context.Context
 }
 
-func NewBanshee(config configs.GlobalConfig, migConfig configs.MigrationConfig) (*Banshee, error) {
+func NewBanshee(ctx context.Context, config configs.GlobalConfig, migConfig configs.MigrationConfig) (*Banshee, error) {
 
 	lvl, lvlErr := logrus.ParseLevel(config.Options.LogLevel)
 	if lvlErr != nil {
@@ -56,7 +56,6 @@ func NewBanshee(config configs.GlobalConfig, migConfig configs.MigrationConfig) 
 	log := logger.WithField("command", "unset")
 	log.Logger.SetLevel(lvl)
 
-	ctx := context.Background()
 	client, err := localGH.NewGithubClient(config, ctx, log)
 	if err != nil {
 		return nil, err

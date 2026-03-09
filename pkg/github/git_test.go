@@ -1,12 +1,14 @@
 package github
 
 import (
+	"context"
 	"testing"
 
 	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/thejokersthief/banshee/v2/pkg/gitcli"
+	"golang.org/x/time/rate"
 )
 
 // ── fakeGit ───────────────────────────────────────────────────────────────────
@@ -92,6 +94,8 @@ func newTestClient(fake gitcli.Git, token string) *GithubClient {
 		git:         fake,
 		accessToken: token,
 		log:         logrus.NewEntry(logrus.New()),
+		ctx:         context.Background(),
+		rateLimiter: rate.NewLimiter(rate.Inf, 0),
 	}
 }
 

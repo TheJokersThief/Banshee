@@ -1,10 +1,13 @@
 package core
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	gogithub "github.com/google/go-github/v63/github"
@@ -30,7 +33,7 @@ func TestMigrationOptions(t *testing.T) {
 		Github:   configs.GithubConfig{Token: "testtoken"},
 		Defaults: configs.DefaultsConfig{Organisation: "testorg"},
 	}
-	b, err := NewBanshee(globalConf, mainConf)
+	b, err := NewBanshee(context.Background(), globalConf, mainConf)
 	assert.NoError(t, err)
 
 	want_org = "testorg"
@@ -74,7 +77,7 @@ type fakeGithubClient struct {
 	bareRepoURL   string
 	defaultBranch string
 	createdPRURL  string
-	pushCallCount int
+	pushCallCount atomic.Int32
 }
 
 func (f *fakeGithubClient) ShallowClone(org, repoName, dir, migrationBranchName string) (string, error) {
@@ -120,7 +123,7 @@ func (f *fakeGithubClient) GitCommit(dir, msg, name, email string) error {
 	return f.git.Commit(dir, msg, name, email)
 }
 func (f *fakeGithubClient) Push(branch, dir, _, _ string) error {
-	f.pushCallCount++
+	f.pushCallCount.Add(1)
 	return f.git.Push(dir, f.bareRepoURL, branch)
 }
 func (f *fakeGithubClient) FindPullRequest(_, _, _, _ string) (*gogithub.PullRequest, error) {
@@ -180,10 +183,10 @@ func TestHandleRepo(t *testing.T) {
 		},
 	}
 
-	b, err := NewBanshee(globalConf, migConf)
+	b, err := NewBanshee(context.Background(), globalConf, migConf)
 	require.NoError(t, err)
 
-	g := gitcli.NewExecGit(false, logrus.NewEntry(logrus.New()))
+	g := gitcli.NewExecGit(context.Background(), false, logrus.NewEntry(logrus.New()))
 	b.GithubClient = &fakeGithubClient{
 		git:           g,
 		bareRepoURL:   bareDir,
@@ -196,7 +199,7 @@ func TestHandleRepo(t *testing.T) {
 	htmlURL, err := b.handleRepo(b.log.WithField("repo", "testorg/testrepo"), "testorg", "testorg/testrepo")
 	require.NoError(t, err)
 	assert.Equal(t, "https://github.com/testorg/testrepo/pull/1", htmlURL)
-	assert.Equal(t, 1, b.GithubClient.(*fakeGithubClient).pushCallCount, "Push should be called exactly once")
+	assert.Equal(t, int32(1), b.GithubClient.(*fakeGithubClient).pushCallCount.Load(), "Push should be called exactly once")
 
 	// ── verify the commit was pushed to the bare repo ────────────────────────
 
@@ -250,10 +253,10 @@ func TestHandleRepoWithWorktree(t *testing.T) {
 		},
 	}
 
-	b, err := NewBanshee(globalConf, migConf)
+	b, err := NewBanshee(context.Background(), globalConf, migConf)
 	require.NoError(t, err)
 
-	g := gitcli.NewExecGit(false, logrus.NewEntry(logrus.New()))
+	g := gitcli.NewExecGit(context.Background(), false, logrus.NewEntry(logrus.New()))
 	b.GithubClient = &fakeGithubClient{
 		git:           g,
 		bareRepoURL:   bareDir,
@@ -264,7 +267,7 @@ func TestHandleRepoWithWorktree(t *testing.T) {
 	htmlURL, err := b.handleRepo(b.log.WithField("repo", "testorg/testrepo"), "testorg", "testorg/testrepo")
 	require.NoError(t, err)
 	assert.Equal(t, "https://github.com/testorg/testrepo/pull/2", htmlURL)
-	assert.Equal(t, 1, b.GithubClient.(*fakeGithubClient).pushCallCount)
+	assert.Equal(t, int32(1), b.GithubClient.(*fakeGithubClient).pushCallCount.Load())
 
 	// Verify worktree directory was cleaned up.
 	worktreeDir := b.getWorktreePath("testorg", "testrepo")
@@ -306,9 +309,9 @@ func TestHandleRepoNoChanges(t *testing.T) {
 		},
 	}
 
-	b, err := NewBanshee(globalConf, migConf)
+	b, err := NewBanshee(context.Background(), globalConf, migConf)
 	require.NoError(t, err)
-	g := gitcli.NewExecGit(false, logrus.NewEntry(logrus.New()))
+	g := gitcli.NewExecGit(context.Background(), false, logrus.NewEntry(logrus.New()))
 	b.GithubClient = &fakeGithubClient{
 		git: g, bareRepoURL: bareDir, defaultBranch: branch,
 	}
@@ -316,5 +319,339 @@ func TestHandleRepoNoChanges(t *testing.T) {
 	htmlURL, err := b.handleRepo(b.log.WithField("repo", "testorg/testrepo"), "testorg", "testorg/testrepo")
 	require.NoError(t, err)
 	assert.Empty(t, htmlURL, "no PR should be created when repo is clean")
-	assert.Equal(t, 0, b.GithubClient.(*fakeGithubClient).pushCallCount, "Push should not be called when repo is clean")
+	assert.Equal(t, int32(0), b.GithubClient.(*fakeGithubClient).pushCallCount.Load(), "Push should not be called when repo is clean")
+}
+
+// ── multiBareFakeClient ──────────────────────────────────────────────────────
+
+// multiBareFakeClient wraps fakeGithubClient but creates a separate bare repo
+// for each repo name, avoiding branch-name collisions when repos push in parallel.
+type multiBareFakeClient struct {
+	fakeGithubClient
+	t     *testing.T
+	bares map[string]string // repoName -> bareDir
+	mu    sync.Mutex
+}
+
+func newMultiBareFake(t *testing.T, branch string) *multiBareFakeClient {
+	t.Helper()
+	return &multiBareFakeClient{
+		fakeGithubClient: fakeGithubClient{
+			git:           gitcli.NewExecGit(context.Background(), false, logrus.NewEntry(logrus.New())),
+			defaultBranch: branch,
+			createdPRURL:  "https://github.com/testorg/repo/pull/1",
+		},
+		t:     t,
+		bares: make(map[string]string),
+	}
+}
+
+func (m *multiBareFakeClient) bareFor(repoName string) string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if dir, ok := m.bares[repoName]; ok {
+		return dir
+	}
+	dir, _ := setupBareRepo(m.t)
+	m.bares[repoName] = dir
+	return dir
+}
+
+func (m *multiBareFakeClient) ShallowClone(_, repoName, dir, migrationBranchName string) (string, error) {
+	bareURL := m.bareFor(repoName)
+	if _, err := os.Stat(dir + "/.git"); os.IsNotExist(err) {
+		if err := m.git.Clone(bareURL, dir, m.defaultBranch, 0); err != nil {
+			return "", err
+		}
+	} else {
+		if err := m.git.Checkout(dir, m.defaultBranch, false); err != nil {
+			return "", err
+		}
+	}
+	return m.defaultBranch, m.git.Checkout(dir, migrationBranchName, true)
+}
+
+func (m *multiBareFakeClient) ShallowCloneWorktree(_, repoName, cacheDir, worktreeDir, migrationBranchName string) (string, error) {
+	bareURL := m.bareFor(repoName)
+	if _, err := os.Stat(cacheDir + "/.git"); os.IsNotExist(err) {
+		if err := m.git.Clone(bareURL, cacheDir, m.defaultBranch, 0); err != nil {
+			return "", err
+		}
+	} else {
+		if err := m.git.Checkout(cacheDir, m.defaultBranch, false); err != nil {
+			return "", err
+		}
+	}
+	if err := m.git.WorktreeAdd(cacheDir, worktreeDir, migrationBranchName, true); err != nil {
+		return "", err
+	}
+	return m.defaultBranch, nil
+}
+
+func (m *multiBareFakeClient) Push(branch, dir, _, repoName string) error {
+	m.pushCallCount.Add(1)
+	bareURL := m.bareFor(repoName)
+	return m.git.Push(dir, bareURL, branch)
+}
+
+func (m *multiBareFakeClient) GitWorktreeRemove(repoDir, worktreeDir string) error {
+	return m.git.WorktreeRemove(repoDir, worktreeDir)
+}
+
+func (m *multiBareFakeClient) GitWorktreePrune(repoDir string) error {
+	return m.git.WorktreePrune(repoDir)
+}
+
+// Verify multiBareFakeClient satisfies the interface at compile time.
+var _ githubClient = (*multiBareFakeClient)(nil)
+
+// cancellingFake wraps multiBareFakeClient and cancels a context after N pushes.
+type cancellingFake struct {
+	*multiBareFakeClient
+	cancel      context.CancelFunc
+	cancelAfter int32
+}
+
+func (c *cancellingFake) Push(branch, dir, org, repoName string) error {
+	err := c.multiBareFakeClient.Push(branch, dir, org, repoName)
+	if c.pushCallCount.Load() >= c.cancelAfter {
+		c.cancel()
+	}
+	return err
+}
+
+var _ githubClient = (*cancellingFake)(nil)
+
+// TestMigrateParallel verifies that multiple repos are processed concurrently
+// when Concurrency > 1 and cache_repos is enabled.
+func TestMigrateParallel(t *testing.T) {
+	// Each repo gets its own bare repo via multiBareFakeClient; we only need a branch name.
+	branch := "main"
+
+	prBodyFile := filepath.Join(t.TempDir(), "pr-body.md")
+	require.NoError(t, os.WriteFile(prBodyFile, []byte("<!-- changelog -->"), 0644))
+
+	cacheDir := t.TempDir()
+	repos := []string{"repo1", "repo2", "repo3", "repo4", "repo5"}
+
+	globalConf := configs.GlobalConfig{
+		Options: configs.OptionsConfig{
+			LogLevel:    "info",
+			Concurrency: 3,
+			CacheRepos: configs.CacheReposConfig{
+				Enabled:   true,
+				Directory: cacheDir,
+			},
+		},
+		Github: configs.GithubConfig{Token: "testtoken"},
+		Defaults: configs.DefaultsConfig{
+			Organisation: "testorg",
+			GitName:      "Test User",
+			GitEmail:     "test@example.com",
+		},
+	}
+	migConf := configs.MigrationConfig{
+		BranchName:  "migration-branch",
+		PRBodyFile:  prBodyFile,
+		PRTitle:     "Test parallel migration",
+		ListOfRepos: repos,
+		Actions: []configs.Action{
+			{
+				Action:      "run_command",
+				Description: "Add a file",
+				Input:       map[string]string{"command": "touch migrated.txt"},
+			},
+		},
+	}
+
+	b, err := NewBanshee(context.Background(), globalConf, migConf)
+	require.NoError(t, err)
+
+	fake := newMultiBareFake(t, branch)
+	b.GithubClient = fake
+
+	err = b.Migrate()
+	require.NoError(t, err)
+	assert.Equal(t, int32(len(repos)), fake.pushCallCount.Load(),
+		"Push should be called once per repo")
+}
+
+// TestMigrateDefaultConcurrency verifies that Concurrency=1 behaves
+// identically to the original sequential loop.
+func TestMigrateDefaultConcurrency(t *testing.T) {
+	_, branch := setupBareRepo(t)
+
+	prBodyFile := filepath.Join(t.TempDir(), "pr-body.md")
+	require.NoError(t, os.WriteFile(prBodyFile, []byte("<!-- changelog -->"), 0644))
+
+	globalConf := configs.GlobalConfig{
+		Options: configs.OptionsConfig{
+			LogLevel:    "info",
+			Concurrency: 1,
+		},
+		Github: configs.GithubConfig{Token: "testtoken"},
+		Defaults: configs.DefaultsConfig{
+			Organisation: "testorg",
+			GitName:      "Test User",
+			GitEmail:     "test@example.com",
+		},
+	}
+	migConf := configs.MigrationConfig{
+		BranchName:  "migration-branch",
+		PRBodyFile:  prBodyFile,
+		PRTitle:     "Test sequential migration",
+		ListOfRepos: []string{"repo1", "repo2"},
+		Actions: []configs.Action{
+			{
+				Action:      "run_command",
+				Description: "Add a file",
+				Input:       map[string]string{"command": "touch migrated.txt"},
+			},
+		},
+	}
+
+	b, err := NewBanshee(context.Background(), globalConf, migConf)
+	require.NoError(t, err)
+
+	fake := newMultiBareFake(t, branch)
+	b.GithubClient = fake
+
+	err = b.Migrate()
+	require.NoError(t, err)
+	assert.Equal(t, int32(2), fake.pushCallCount.Load(),
+		"Push should be called once per repo")
+}
+
+// TestMigrateCancellationPreCancelled verifies that a pre-cancelled context
+// skips all repos without processing any.
+func TestMigrateCancellationPreCancelled(t *testing.T) {
+	branch := "main"
+
+	prBodyFile := filepath.Join(t.TempDir(), "pr-body.md")
+	require.NoError(t, os.WriteFile(prBodyFile, []byte("<!-- changelog -->"), 0644))
+
+	cacheDir := t.TempDir()
+
+	globalConf := configs.GlobalConfig{
+		Options: configs.OptionsConfig{
+			LogLevel:    "info",
+			Concurrency: 1,
+			CacheRepos: configs.CacheReposConfig{
+				Enabled:   true,
+				Directory: cacheDir,
+			},
+		},
+		Github: configs.GithubConfig{Token: "testtoken"},
+		Defaults: configs.DefaultsConfig{
+			Organisation: "testorg",
+			GitName:      "Test User",
+			GitEmail:     "test@example.com",
+		},
+	}
+	migConf := configs.MigrationConfig{
+		BranchName:  "migration-branch",
+		PRBodyFile:  prBodyFile,
+		PRTitle:     "Test cancellation",
+		ListOfRepos: []string{"repo1", "repo2", "repo3", "repo4", "repo5"},
+		Actions: []configs.Action{
+			{
+				Action:      "run_command",
+				Description: "Add a file",
+				Input:       map[string]string{"command": "touch migrated.txt"},
+			},
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	b, err := NewBanshee(ctx, globalConf, migConf)
+	require.NoError(t, err)
+
+	fake := newMultiBareFake(t, branch)
+	b.GithubClient = fake
+
+	// Cancel immediately so no repos get dispatched
+	cancel()
+
+	err = b.Migrate()
+	require.NoError(t, err)
+	assert.Equal(t, int32(0), fake.pushCallCount.Load(),
+		"No repos should be pushed when context is already cancelled")
+}
+
+// TestMigrateCancellationMidFlight verifies that cancelling the context
+// mid-migration allows in-flight repos to complete while skipping remaining repos.
+func TestMigrateCancellationMidFlight(t *testing.T) {
+	branch := "main"
+
+	prBodyFile := filepath.Join(t.TempDir(), "pr-body.md")
+	require.NoError(t, os.WriteFile(prBodyFile, []byte("<!-- changelog -->"), 0644))
+
+	cacheDir := t.TempDir()
+
+	globalConf := configs.GlobalConfig{
+		Options: configs.OptionsConfig{
+			LogLevel:    "info",
+			Concurrency: 1, // sequential so we can predict ordering
+			CacheRepos: configs.CacheReposConfig{
+				Enabled:   true,
+				Directory: cacheDir,
+			},
+		},
+		Github: configs.GithubConfig{Token: "testtoken"},
+		Defaults: configs.DefaultsConfig{
+			Organisation: "testorg",
+			GitName:      "Test User",
+			GitEmail:     "test@example.com",
+		},
+	}
+	migConf := configs.MigrationConfig{
+		BranchName:  "migration-branch",
+		PRBodyFile:  prBodyFile,
+		PRTitle:     "Test mid-flight cancellation",
+		ListOfRepos: []string{"repo1", "repo2", "repo3", "repo4", "repo5"},
+		Actions: []configs.Action{
+			{
+				Action:      "run_command",
+				Description: "Add a file",
+				Input:       map[string]string{"command": "touch migrated.txt"},
+			},
+		},
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	b, err := NewBanshee(ctx, globalConf, migConf)
+	require.NoError(t, err)
+
+	// Cancel after first repo completes by wrapping Push.
+	fake := newMultiBareFake(t, branch)
+	b.GithubClient = &cancellingFake{multiBareFakeClient: fake, cancel: cancel, cancelAfter: 1}
+
+	_ = b.Migrate() // may or may not error depending on cancellation timing
+	pushes := b.GithubClient.(*cancellingFake).pushCallCount.Load()
+	assert.GreaterOrEqual(t, pushes, int32(1), "At least one repo should have completed before cancel")
+	assert.Less(t, pushes, int32(5), "Not all repos should have completed")
+}
+
+// TestMigrateConcurrencyRequiresCacheRepos verifies that concurrency > 1
+// without cache_repos returns a clear error.
+func TestMigrateConcurrencyRequiresCacheRepos(t *testing.T) {
+	globalConf := configs.GlobalConfig{
+		Options: configs.OptionsConfig{
+			LogLevel:    "info",
+			Concurrency: 2,
+			CacheRepos:  configs.CacheReposConfig{Enabled: false},
+		},
+		Github:   configs.GithubConfig{Token: "testtoken"},
+		Defaults: configs.DefaultsConfig{Organisation: "testorg"},
+	}
+	migConf := configs.MigrationConfig{
+		ListOfRepos: []string{"repo1"},
+	}
+
+	b, err := NewBanshee(context.Background(), globalConf, migConf)
+	require.NoError(t, err)
+
+	err = b.Migrate()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "parallel migration (concurrency > 1) requires repo caching")
 }

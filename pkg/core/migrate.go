@@ -6,11 +6,41 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/google/go-github/v63/github"
 	"github.com/sirupsen/logrus"
 	"github.com/thejokersthief/banshee/v2/pkg/actions"
 )
+
+type repoStatus string
+
+const (
+	statusCompleted repoStatus = "completed"
+	statusFailed    repoStatus = "failed"
+	statusCancelled repoStatus = "cancelled"
+)
+
+type repoResult struct {
+	Repo   string
+	Status repoStatus
+	Err    error
+	PRURL  string
+}
+
+// deduplicateRepos returns repos with duplicates removed, preserving order.
+func deduplicateRepos(repos []string) []string {
+	seen := make(map[string]struct{}, len(repos))
+	out := make([]string, 0, len(repos))
+	for _, r := range repos {
+		if _, dup := seen[r]; !dup {
+			seen[r] = struct{}{}
+			out = append(out, r)
+		}
+	}
+	return out
+}
 
 // Perform a migration
 func (b *Banshee) Migrate() error {
@@ -41,31 +71,159 @@ func (b *Banshee) Migrate() error {
 		return fmt.Errorf("found no repos for migration")
 	}
 
+	repos = deduplicateRepos(repos)
+
+	workers := max(b.GlobalConfig.Options.Concurrency, 1)
+	results := b.dispatchRepos(org, repos, workers)
+
+	b.printMigrationSummary(results)
+
 	var migrationErrors []error
-	for _, repo := range repos {
-		// Check if repo is of the form <org>/<repo>
+	for _, r := range results {
+		if r.Err != nil {
+			migrationErrors = append(migrationErrors, fmt.Errorf("%s: %w", r.Repo, r.Err))
+		}
+	}
+	if len(migrationErrors) > 0 {
+		return errors.Join(migrationErrors...)
+	}
+	return nil
+}
+
+// dispatchRepos fans out repo processing across the given number of workers,
+// respecting context cancellation for graceful shutdown.
+//
+// NOTE: We use a manual semaphore+WaitGroup rather than errgroup.SetLimit because
+// errgroup.Go blocks without a select, so we cannot check ctx.Done() during the
+// wait for a semaphore slot. The manual pattern gives us cancellation-aware backpressure.
+func (b *Banshee) dispatchRepos(org string, repos []string, workers int) []repoResult {
+	total := len(repos)
+	sem := make(chan struct{}, workers)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var done atomic.Int32
+	var results []repoResult
+
+	// Log when context is cancelled so the user knows shutdown is happening.
+	go func() {
+		<-b.ctx.Done()
+		b.log.Warn("Interrupt received, waiting for in-flight repos to finish...")
+	}()
+
+	for i, repo := range repos {
 		if !strings.Contains(repo, "/") {
 			repo = fmt.Sprintf("%s/%s", org, repo)
 		}
 
-		_, repoErr := b.handleRepo(b.log.WithField("repo", repo), org, repo)
-		if repoErr != nil {
-			b.log.WithField("repo", repo).Errorf("Migration failed: %v", repoErr)
-			migrationErrors = append(migrationErrors, fmt.Errorf("%s: %w", repo, repoErr))
+		// Check for context cancellation before acquiring a slot.
+		select {
+		case <-b.ctx.Done():
+			mu.Lock()
+			results = append(results, repoResult{Repo: repo, Status: statusCancelled})
+			mu.Unlock()
+			continue
+		default:
 		}
-		b.log.Println("")
+
+		// Acquire semaphore slot (or cancel).
+		select {
+		case <-b.ctx.Done():
+			mu.Lock()
+			results = append(results, repoResult{Repo: repo, Status: statusCancelled})
+			mu.Unlock()
+			continue
+		case sem <- struct{}{}:
+		}
+
+		wg.Add(1)
+		b.log.Infof("[start %d/%d] %s", i+1, total, repo)
+
+		go func(repo string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			// Recover panics so one repo cannot crash the entire migration.
+			defer func() {
+				if r := recover(); r != nil {
+					n := done.Add(1)
+					mu.Lock()
+					defer mu.Unlock()
+					err := fmt.Errorf("panic: %v", r)
+					b.log.WithField("repo", repo).Errorf("[done %d/%d] Panicked %s: %v", n, total, repo, err)
+					results = append(results, repoResult{Repo: repo, Status: statusFailed, Err: err})
+				}
+			}()
+
+			prURL, repoErr := b.handleRepo(b.log.WithField("repo", repo), org, repo)
+			n := done.Add(1)
+
+			mu.Lock()
+			defer mu.Unlock()
+			switch {
+			case repoErr != nil:
+				b.log.WithField("repo", repo).Errorf("[done %d/%d] Failed %s: %v", n, total, repo, repoErr)
+				results = append(results, repoResult{Repo: repo, Status: statusFailed, Err: repoErr})
+			case prURL != "":
+				b.log.Infof("[done %d/%d] Completed %s -> %s", n, total, repo, prURL)
+				results = append(results, repoResult{Repo: repo, Status: statusCompleted, PRURL: prURL})
+			default:
+				b.log.Infof("[done %d/%d] Completed %s (no changes)", n, total, repo)
+				results = append(results, repoResult{Repo: repo, Status: statusCompleted})
+			}
+		}(repo)
 	}
-	if len(migrationErrors) > 0 {
-		b.log.Errorf("%d repo(s) failed migration", len(migrationErrors))
-		return errors.Join(migrationErrors...)
+
+	wg.Wait()
+	return results
+}
+
+func (b *Banshee) printMigrationSummary(results []repoResult) {
+	var completed, failed, cancelled int
+	for _, r := range results {
+		switch r.Status {
+		case statusCompleted:
+			completed++
+		case statusFailed:
+			failed++
+		case statusCancelled:
+			cancelled++
+		}
 	}
-	return nil
+
+	label := "Migration summary"
+	if b.DryRun {
+		label = "Migration dry-run summary"
+	}
+	b.log.Infof("%s: %d completed, %d failed, %d cancelled (total: %d)",
+		label, completed, failed, cancelled, len(results))
+
+	for _, r := range results {
+		switch r.Status {
+		case statusCompleted:
+			if r.PRURL != "" {
+				b.log.Infof("  OK    %s -> %s", r.Repo, r.PRURL)
+			} else {
+				b.log.Infof("  OK    %s (no changes)", r.Repo)
+			}
+		case statusFailed:
+			b.log.Infof("  FAIL  %s: %v", r.Repo, r.Err)
+		case statusCancelled:
+			b.log.Infof("  SKIP  %s (cancelled)", r.Repo)
+		}
+	}
 }
 
 // Validate migration command options
 func (b *Banshee) validateMigrateCommand() error {
 	if oneChoiceErr := b.OnlyOneRepoChoice(); oneChoiceErr != nil {
 		return oneChoiceErr
+	}
+
+	if b.GlobalConfig.Options.Concurrency > 1 && !b.GlobalConfig.Options.CacheRepos.Enabled {
+		return fmt.Errorf(
+			"parallel migration (concurrency > 1) requires repo caching to be enabled\n" +
+				"Set 'options.cache_repos.enabled: true' and 'options.cache_repos.directory: /some/path' in your global config.\n" +
+				"This is needed so each worker gets an isolated git worktree")
 	}
 
 	return nil
@@ -209,6 +367,13 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 	changelog := []string{}
 	commitMade := false // Track whether any commits are made as actions run
 	for _, action := range b.MigrationConfig.Actions {
+		// Check for cancellation between actions for faster shutdown.
+		select {
+		case <-b.ctx.Done():
+			return "", b.ctx.Err()
+		default:
+		}
+
 		dirty, actionErr := b.applyActionAndCommit(log, dir, action.Action, action.Description, action.Input)
 		if actionErr != nil {
 			return "", actionErr

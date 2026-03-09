@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -72,7 +73,7 @@ func TestOnlyOneRepoChoice(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			b, err := NewBanshee(globalConf, configs.MigrationConfig{
+			b, err := NewBanshee(context.Background(), globalConf, configs.MigrationConfig{
 				// Need at least one repo option to pass NewBanshee validation;
 				// we override MigrationConfig directly after construction.
 				ListOfRepos: []string{"bootstrap"},

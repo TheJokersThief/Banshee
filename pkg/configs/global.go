@@ -46,7 +46,8 @@ type OptionsConfig struct {
 	CacheRepos   CacheReposConfig   `fig:"cache_repos"`
 	SaveProgress SaveProgressConfig `fig:"save_progress"`
 
-	Merges Merges `fig:"merging"`
+	Merges      Merges `fig:"merging"`
+	Concurrency int    `fig:"concurrency" default:"1"`
 }
 
 type DefaultsConfig struct {

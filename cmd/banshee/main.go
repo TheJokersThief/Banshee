@@ -1,10 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
+	"syscall"
 
 	"github.com/alecthomas/kong"
 	"github.com/charmbracelet/lipgloss"
@@ -33,6 +36,7 @@ var CLI struct {
 	Migrate struct {
 		MigrationFile string `arg:"" name:"path" help:"Path to the migration config file (YAML). Defines the target repos, branch name, actions to run, and PR settings." type:"path"`
 		DryRun        bool   `name:"dry-run" short:"d" help:"Preview changes without committing, pushing, or opening PRs."`
+		Concurrency   int    `name:"concurrency" short:"j" help:"Number of repos to process in parallel. Values above 1 require cache_repos.enabled=true. Overrides options.concurrency config." default:"0"`
 	} `cmd:"" help:"Run a migration: clone repos, apply actions, commit changes, and open pull requests."`
 
 	List struct {
@@ -53,41 +57,50 @@ var CLI struct {
 }
 
 func main() {
-	ctx := kong.Parse(
+	kongCtx := kong.Parse(
 		&CLI,
 		kong.Name("banshee"),
 		kong.Description("Large-scale GitHub migration tool — clone repos, apply changes, and open pull requests across an entire organisation."),
 		kong.UsageOnError(),
 	)
 
-	if ctx.Command() == "version" {
+	if kongCtx.Command() == "version" {
 		fmt.Println(SuccessStyling.Render(fmt.Sprintf("banshee  version: %s  commit: %s", Version, GitCommitSHA)))
 		os.Exit(0)
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	var globalConfig configs.GlobalConfig
 	globalConfig = parseConfig(globalConfig, CLI.ConfigFile, "APP")
 
-	switch ctx.Command() {
+	switch kongCtx.Command() {
 	case "migrate <path>":
-		banshee := createBanshee(globalConfig, CLI.Migrate.MigrationFile)
+		banshee := createBanshee(ctx, globalConfig, CLI.Migrate.MigrationFile)
 		banshee.DryRun = CLI.Migrate.DryRun
+		if CLI.Migrate.Concurrency < 0 {
+			printFatalError(fmt.Errorf("--concurrency must be a positive number, got %d", CLI.Migrate.Concurrency))
+		}
+		if CLI.Migrate.Concurrency > 0 {
+			banshee.GlobalConfig.Options.Concurrency = CLI.Migrate.Concurrency
+		}
 		migrationErr := banshee.Migrate()
 		handleErr(migrationErr)
 	case "list <path>":
-		banshee := createBanshee(globalConfig, CLI.List.MigrationFile)
+		banshee := createBanshee(ctx, globalConfig, CLI.List.MigrationFile)
 		listErr := banshee.List(CLI.List.State, CLI.List.Format)
 		handleErr(listErr)
 	case "merge <path>":
-		banshee := createBanshee(globalConfig, CLI.Merge.MigrationFile)
+		banshee := createBanshee(ctx, globalConfig, CLI.Merge.MigrationFile)
 		mergeErr := banshee.MergeApproved()
 		handleErr(mergeErr)
 	case "clone <path>":
-		banshee := createBanshee(globalConfig, CLI.Clone.MigrationFile)
+		banshee := createBanshee(ctx, globalConfig, CLI.Clone.MigrationFile)
 		cloneErr := banshee.Clone()
 		handleErr(cloneErr)
 	default:
-		printFatalError(fmt.Errorf("unknown command: %q\nRun 'banshee --help' to see available commands", ctx.Command()))
+		printFatalError(fmt.Errorf("unknown command: %q\nRun 'banshee --help' to see available commands", kongCtx.Command()))
 	}
 }
 
@@ -101,7 +114,7 @@ func parseConfig[C configs.Configs](conf C, file string, envKey string) C {
 	return conf
 }
 
-func createBanshee(globalConfig configs.GlobalConfig, migrationConfigPath string) *core.Banshee {
+func createBanshee(ctx context.Context, globalConfig configs.GlobalConfig, migrationConfigPath string) *core.Banshee {
 	var migrationConfig configs.MigrationConfig
 	migrationConfig = parseConfig(migrationConfig, migrationConfigPath, "APP")
 
@@ -111,7 +124,7 @@ func createBanshee(globalConfig configs.GlobalConfig, migrationConfigPath string
 	}
 
 	globalConfig.MigrationDir = path.Dir(absPath)
-	banshee, initErr := core.NewBanshee(globalConfig, migrationConfig)
+	banshee, initErr := core.NewBanshee(ctx, globalConfig, migrationConfig)
 	if initErr != nil {
 		printFatalError(fmt.Errorf("failed to initialise banshee: %w\nCheck your global config for valid GitHub credentials and log level settings", initErr))
 	}

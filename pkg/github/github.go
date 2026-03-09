@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/avast/retry-go/v4"
 	"github.com/bradleyfalzon/ghinstallation/v2"
@@ -16,6 +17,7 @@ import (
 	"github.com/thejokersthief/banshee/v2/pkg/configs"
 	"github.com/thejokersthief/banshee/v2/pkg/gitcli"
 	"golang.org/x/oauth2"
+	"golang.org/x/time/rate"
 )
 
 type GithubClient struct {
@@ -27,6 +29,8 @@ type GithubClient struct {
 	tokenRefreshItr *ghinstallation.Transport
 	accessToken     string
 	ctx             context.Context
+	tokenMu         sync.Mutex
+	rateLimiter     *rate.Limiter
 }
 
 var (
@@ -41,7 +45,8 @@ func NewGithubClient(globalConf configs.GlobalConfig, ctx context.Context, log *
 		ctx:             ctx,
 		log:             log.WithField("client", "GithubClient"),
 		tokenRefreshItr: nil,
-		git:             gitcli.NewExecGit(globalConf.Options.ShowGitOutput, log),
+		git:             gitcli.NewExecGit(ctx, globalConf.Options.ShowGitOutput, log),
+		rateLimiter:     rate.NewLimiter(rate.Limit(25), 5),
 	}
 
 	if globalConf.Github.UseGithubApp {
@@ -103,6 +108,9 @@ func newGithubAppClient(globalConf configs.GlobalConfig, ghClient *GithubClient,
 
 // freshTokenURL returns a token-embedded HTTPS URL, refreshing the token for GitHub Apps.
 func (gc *GithubClient) freshTokenURL(org, repoName string) (string, error) {
+	gc.tokenMu.Lock()
+	defer gc.tokenMu.Unlock()
+
 	if gc.tokenRefreshItr != nil {
 		token, err := gc.tokenRefreshItr.Token(gc.ctx)
 		if err != nil {
@@ -238,6 +246,10 @@ func (gc *GithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDi
 
 // Get the default branch set for the repo on GitHub
 func (gc *GithubClient) GetDefaultBranch(owner, repo string) (string, error) {
+	if err := gc.waitRateLimit(); err != nil {
+		return "", err
+	}
+
 	var ghRepo *github.Repository
 	searchErr := retry.Do(
 		func() error {
@@ -253,4 +265,9 @@ func (gc *GithubClient) GetDefaultBranch(owner, repo string) (string, error) {
 	}
 
 	return ghRepo.GetDefaultBranch(), nil
+}
+
+// waitRateLimit blocks until the shared rate limiter allows the next request.
+func (gc *GithubClient) waitRateLimit() error {
+	return gc.rateLimiter.Wait(gc.ctx)
 }
