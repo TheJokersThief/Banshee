@@ -23,3 +23,13 @@ func (gc *GithubClient) GitAddAll(dir string) error {
 func (gc *GithubClient) GitCommit(dir, message, name, email string) error {
 	return gc.git.Commit(dir, message, name, email)
 }
+
+// GitWorktreeRemove removes a git worktree from the given repo directory.
+func (gc *GithubClient) GitWorktreeRemove(repoDir, worktreeDir string) error {
+	return gc.git.WorktreeRemove(repoDir, worktreeDir)
+}
+
+// GitWorktreePrune removes stale worktree metadata from the repo.
+func (gc *GithubClient) GitWorktreePrune(repoDir string) error {
+	return gc.git.WorktreePrune(repoDir)
+}
