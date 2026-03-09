@@ -160,6 +160,37 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 	return defaultBranch, nil
 }
 
+// ensureCacheClone clones the repo into dir (shallow, default branch) or updates
+// an existing clone by checking out the default branch and pulling.
+func (gc *GithubClient) ensureCacheClone(tokenURL, dir, repoName, defaultBranch string) error {
+	if _, err := os.Stat(dir + "/.git"); errors.Is(err, os.ErrNotExist) {
+		gc.log.Info("Cloning ", repoName, " [", defaultBranch, "] into cache...")
+		return gc.git.Clone(tokenURL, dir, defaultBranch, 1)
+	}
+	gc.log.Info("Updating cache ", dir, " [", defaultBranch, "]...")
+	if err := gc.git.Checkout(dir, defaultBranch, false); err != nil {
+		return err
+	}
+	return gc.git.Pull(dir, tokenURL, defaultBranch)
+}
+
+// addWorktreeForBranch creates a worktree, trying an existing branch first
+// and falling back to creating a new one if the reference doesn't exist.
+func (gc *GithubClient) addWorktreeForBranch(repoDir, worktreeDir, branch string) error {
+	firstErr := gc.git.WorktreeAdd(repoDir, worktreeDir, branch, false)
+	if firstErr == nil {
+		return nil
+	}
+	var ge *gitcli.GitError
+	if !errors.As(firstErr, &ge) || !strings.Contains(ge.Stderr, "invalid reference") {
+		return fmt.Errorf("worktree add: %w", firstErr)
+	}
+	if createErr := gc.git.WorktreeAdd(repoDir, worktreeDir, branch, true); createErr != nil {
+		return fmt.Errorf("worktree add: %w", createErr)
+	}
+	return nil
+}
+
 // ShallowCloneWorktree clones (or updates) the cached repo on the default branch,
 // then creates a git worktree for the migration branch. Returns the default branch name.
 func (gc *GithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDir, migrationBranchName string) (string, error) {
@@ -172,21 +203,8 @@ func (gc *GithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDi
 	if err != nil {
 		return "", err
 	}
-
-	// Clone or update the cache directory on the default branch.
-	if _, err := os.Stat(cacheDir + "/.git"); errors.Is(err, os.ErrNotExist) {
-		gc.log.Info("Cloning ", repoName, " [", defaultBranch, "] into cache...")
-		if err := gc.git.Clone(tokenURL, cacheDir, defaultBranch, 1); err != nil {
-			return "", err
-		}
-	} else {
-		gc.log.Info("Updating cache ", cacheDir, " [", defaultBranch, "]...")
-		if err := gc.git.Checkout(cacheDir, defaultBranch, false); err != nil {
-			return "", err
-		}
-		if err := gc.git.Pull(cacheDir, tokenURL, defaultBranch); err != nil {
-			return "", err
-		}
+	if err := gc.ensureCacheClone(tokenURL, cacheDir, repoName, defaultBranch); err != nil {
+		return "", err
 	}
 
 	// Fetch the migration branch from remote (swallow "not found").
@@ -198,16 +216,8 @@ func (gc *GithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDi
 		return "", err
 	}
 
-	// Create the worktree — try existing branch first, then create new.
-	if firstErr := gc.git.WorktreeAdd(cacheDir, worktreeDir, migrationBranchName, false); firstErr != nil {
-		// Only fall back to creating a new branch if the branch doesn't exist locally.
-		var ge *gitcli.GitError
-		if !errors.As(firstErr, &ge) || !strings.Contains(ge.Stderr, "invalid reference") {
-			return "", fmt.Errorf("worktree add: %w", firstErr)
-		}
-		if createErr := gc.git.WorktreeAdd(cacheDir, worktreeDir, migrationBranchName, true); createErr != nil {
-			return "", fmt.Errorf("worktree add: %w", createErr)
-		}
+	if err := gc.addWorktreeForBranch(cacheDir, worktreeDir, migrationBranchName); err != nil {
+		return "", err
 	}
 
 	// If the branch existed remotely, pull latest into the worktree.
@@ -217,11 +227,10 @@ func (gc *GithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDi
 	}
 	if pullErr := gc.git.Pull(worktreeDir, pullURL, migrationBranchName); pullErr != nil {
 		// ErrReferenceNotFound means the branch is new (local only) — safe to ignore.
-		if errors.Is(pullErr, gitcli.ErrReferenceNotFound) {
-			gc.log.Debug("Migration branch is new, skipping pull in worktree")
-		} else {
+		if !errors.Is(pullErr, gitcli.ErrReferenceNotFound) {
 			return "", pullErr
 		}
+		gc.log.Debug("Migration branch is new, skipping pull in worktree")
 	}
 
 	return defaultBranch, nil
