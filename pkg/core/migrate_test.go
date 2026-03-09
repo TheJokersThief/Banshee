@@ -54,7 +54,7 @@ func setupBareRepo(t *testing.T) (bareDir, branch string) {
 		out, err := exec.Command(name, args...).CombinedOutput()
 		require.NoError(t, err, "%s %v: %s", name, args, out)
 	}
-	run("git", "init", "--bare", bareDir)
+	run("git", "init", "--bare", "--initial-branch=main", bareDir)
 	src := t.TempDir()
 	run("git", "clone", bareDir, src)
 	run("git", "-C", src, "config", "user.email", "test@example.com")
