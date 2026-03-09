@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/go-github/v63/github"
@@ -177,6 +178,12 @@ func (b *Banshee) getCacheRepoPath(org, repo string) string {
 	return fmt.Sprintf("%s/%s-%s", b.GlobalConfig.Options.CacheRepos.Directory, org, repo)
 }
 
+func (b *Banshee) getWorktreePath(org, repo string) string {
+	safeBranch := strings.ReplaceAll(b.MigrationConfig.BranchName, "/", "-")
+	return fmt.Sprintf("%s/%s-%s-wt/%s",
+		b.GlobalConfig.Options.CacheRepos.Directory, org, repo, safeBranch)
+}
+
 // Handle the migration for a repo
 func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error) {
 	repoNameOnly := strings.TrimPrefix(repo, org+"/")
@@ -187,8 +194,15 @@ func (b *Banshee) handleRepo(log *logrus.Entry, org, repo string) (string, error
 		return "", cloneErr
 	}
 
-	if !b.GlobalConfig.Options.CacheRepos.Enabled {
-		// If we're not caching repos, delete the repo directory when this function returns
+	if b.GlobalConfig.Options.CacheRepos.Enabled {
+		cacheDir := b.getCacheRepoPath(org, repoNameOnly)
+		defer func() {
+			if rmErr := b.GithubClient.GitWorktreeRemove(cacheDir, dir); rmErr != nil {
+				log.Warnf("worktree cleanup failed for %s: %v", dir, rmErr)
+				_ = os.RemoveAll(dir) // fallback: just delete the directory
+			}
+		}()
+	} else {
 		defer func() { _ = os.RemoveAll(dir) }()
 	}
 
@@ -294,23 +308,17 @@ func (b *Banshee) formatChangelog(pr *github.PullRequest, changelog []string) (s
 	return prBody, nil
 }
 
-// cloneRepo clones a repo and returns its dir and default branch.
+// cloneRepo clones a repo and returns its working dir and default branch.
+// When cache_repos is enabled, a worktree is created so the cached clone stays
+// on the default branch and each migration gets an isolated directory.
 func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, string, error) {
 	repoNameOnly := strings.TrimPrefix(repo, org+"/")
 
-	var dir string
-	var mkDirErr error
-	var cacheCreated bool
 	if b.GlobalConfig.Options.CacheRepos.Enabled {
-		dir = b.getCacheRepoPath(org, repoNameOnly)
-		// Track whether we're creating a new dir so we can clean up on failure.
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			cacheCreated = true
-		}
-		mkDirErr = b.createCacheRepo(log, dir)
-	} else {
-		dir, mkDirErr = os.MkdirTemp(os.TempDir(), strings.ReplaceAll(repo, "/", "-"))
+		return b.cloneRepoWorktree(log, org, repoNameOnly)
 	}
+
+	dir, mkDirErr := os.MkdirTemp(os.TempDir(), strings.ReplaceAll(repo, "/", "-"))
 	if mkDirErr != nil {
 		return "", "", mkDirErr
 	}
@@ -319,12 +327,44 @@ func (b *Banshee) cloneRepo(log *logrus.Entry, org, repo string) (string, string
 
 	defaultBranch, cloneErr := b.GithubClient.ShallowClone(org, repoNameOnly, dir, b.MigrationConfig.BranchName)
 	if cloneErr != nil {
-		// CORE-I1: clean up a newly created cache dir on clone failure.
-		if b.GlobalConfig.Options.CacheRepos.Enabled && cacheCreated {
-			_ = os.RemoveAll(dir)
-		}
 		return "", "", fmt.Errorf("clone error: %w", cloneErr)
 	}
 
 	return dir, defaultBranch, nil
+}
+
+// cloneRepoWorktree handles the cached-repo + worktree path.
+func (b *Banshee) cloneRepoWorktree(log *logrus.Entry, org, repoNameOnly string) (string, string, error) {
+	cacheDir := b.getCacheRepoPath(org, repoNameOnly)
+	worktreeDir := b.getWorktreePath(org, repoNameOnly)
+
+	// Clean up any leftover worktree from an interrupted run.
+	if _, err := os.Stat(worktreeDir); err == nil {
+		log.Warn("Removing leftover worktree directory ", worktreeDir)
+		_ = os.RemoveAll(worktreeDir)
+		// Prune stale git worktree metadata if the cache repo exists.
+		if _, statErr := os.Stat(cacheDir + "/.git"); statErr == nil {
+			_ = b.GithubClient.GitWorktreePrune(cacheDir)
+		}
+	}
+
+	// Ensure parent directories exist for both cache and worktree.
+	if err := b.createCacheRepo(log, cacheDir); err != nil {
+		return "", "", err
+	}
+	worktreeParent := filepath.Dir(worktreeDir)
+	if err := b.createCacheRepo(log, worktreeParent); err != nil {
+		return "", "", err
+	}
+
+	log.Info("Using cache ", cacheDir, ", worktree ", worktreeDir)
+
+	defaultBranch, cloneErr := b.GithubClient.ShallowCloneWorktree(
+		org, repoNameOnly, cacheDir, worktreeDir, b.MigrationConfig.BranchName,
+	)
+	if cloneErr != nil {
+		return "", "", fmt.Errorf("clone error: %w", cloneErr)
+	}
+
+	return worktreeDir, defaultBranch, nil
 }
