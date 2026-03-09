@@ -70,6 +70,8 @@ func parseGitError(stderr string) error {
 		return ErrReferenceNotFound
 	case strings.Contains(lower, "couldn't find remote ref"):
 		return ErrRemoteRefNotFound
+	case strings.Contains(lower, "already checked out") || strings.Contains(lower, "already used by worktree"):
+		return ErrWorktreeAlreadyExists
 	default:
 		msg := stderr
 		if msg == "" {
@@ -178,5 +180,39 @@ func (g *ExecGit) Commit(dir, message, authorName, authorEmail string) error {
 		"-c", "user.email="+authorEmail,
 		"commit", "--author", author, "-m", message,
 	)
+	return err
+}
+
+// WorktreeAdd creates a git worktree at worktreeDir for the given branch.
+// When create=true, a new branch is created (-b). If the worktree already
+// exists (stale from an interrupted run), it is removed and retried.
+func (g *ExecGit) WorktreeAdd(repoDir, worktreeDir, branch string, create bool) error {
+	args := []string{"-C", repoDir, "worktree", "add"}
+	if create {
+		args = append(args, "-b", branch, worktreeDir)
+	} else {
+		args = append(args, worktreeDir, branch)
+	}
+
+	_, err := g.run("", args...)
+	if errors.Is(err, ErrWorktreeAlreadyExists) {
+		// Stale worktree from a previous interrupted run — prune stale references and retry.
+		if _, pruneErr := g.run("", "-C", repoDir, "worktree", "prune"); pruneErr != nil {
+			return fmt.Errorf("pruning stale worktrees before retry: %w", pruneErr)
+		}
+		_, err = g.run("", args...)
+	}
+	return err
+}
+
+// WorktreeRemove forcefully removes a git worktree.
+func (g *ExecGit) WorktreeRemove(repoDir, worktreeDir string) error {
+	_, err := g.run("", "-C", repoDir, "worktree", "remove", "--force", worktreeDir)
+	return err
+}
+
+// WorktreePrune removes stale worktree metadata from the repo.
+func (g *ExecGit) WorktreePrune(repoDir string) error {
+	_, err := g.run("", "-C", repoDir, "worktree", "prune")
 	return err
 }
