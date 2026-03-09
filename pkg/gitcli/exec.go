@@ -1,6 +1,7 @@
 package gitcli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -24,10 +25,11 @@ func (e *GitError) Error() string {
 type ExecGit struct {
 	showOutput bool
 	log        *logrus.Entry
+	ctx        context.Context
 }
 
-func NewExecGit(showOutput bool, log *logrus.Entry) *ExecGit {
-	return &ExecGit{showOutput: showOutput, log: log}
+func NewExecGit(ctx context.Context, showOutput bool, log *logrus.Entry) *ExecGit {
+	return &ExecGit{ctx: ctx, showOutput: showOutput, log: log}
 }
 
 // run executes git with the given args in dir, returning trimmed stdout.
@@ -35,7 +37,7 @@ func NewExecGit(showOutput bool, log *logrus.Entry) *ExecGit {
 // Clone, where the destination path is passed as an argument).
 func (g *ExecGit) run(dir string, args ...string) (string, error) {
 	g.log.WithField("args", args).Debug("git")
-	cmd := exec.Command("git", args...)
+	cmd := exec.CommandContext(g.ctx, "git", args...)
 	cmd.Dir = dir
 
 	var stdoutBuf, stderrBuf strings.Builder

@@ -19,6 +19,7 @@ require (
 	github.com/tidwall/sjson v1.2.5
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/oauth2 v0.30.0
+	golang.org/x/time v0.15.0
 )
 
 require (

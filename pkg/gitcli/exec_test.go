@@ -1,6 +1,7 @@
 package gitcli
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,7 +17,7 @@ import (
 
 func newGit(t *testing.T) *ExecGit {
 	t.Helper()
-	return NewExecGit(false, logrus.NewEntry(logrus.New()))
+	return NewExecGit(context.Background(), false, logrus.NewEntry(logrus.New()))
 }
 
 // runCmd runs an arbitrary command and fails the test on error.

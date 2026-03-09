@@ -2,6 +2,10 @@ package github
 
 // Push pushes the current HEAD to the remote.
 func (gc *GithubClient) Push(branch, dir, org, repoName string) error {
+	if err := gc.waitRateLimit(); err != nil {
+		return err
+	}
+
 	tokenURL, err := gc.freshTokenURL(org, repoName)
 	if err != nil {
 		return err
