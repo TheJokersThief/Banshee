@@ -12,14 +12,16 @@ import (
 // ── fakeGit ───────────────────────────────────────────────────────────────────
 
 type fakeGit struct {
-	cloneArgs   *cloneCall
-	checkoutArgs *checkoutCall
-	fetchArgs   *fetchCall
-	pullArgs    *pullCall
-	pushArgs    *pushCall
-	isCleanArgs *isCleanCall
-	addAllArgs  *addAllCall
-	commitArgs  *commitCall
+	cloneArgs         *cloneCall
+	checkoutArgs      *checkoutCall
+	fetchArgs         *fetchCall
+	pullArgs          *pullCall
+	pushArgs          *pushCall
+	isCleanArgs       *isCleanCall
+	addAllArgs        *addAllCall
+	commitArgs        *commitCall
+	worktreeAddArgs   *worktreeAddCall
+	worktreeRemoveArgs *worktreeRemoveCall
 
 	isCleanResult bool
 	err           error
@@ -32,7 +34,9 @@ type pullCall    struct{ dir, tokenURL, branch string }
 type pushCall    struct{ dir, tokenURL, branch string }
 type isCleanCall struct{ dir string }
 type addAllCall  struct{ dir string }
-type commitCall  struct{ dir, message, name, email string }
+type commitCall        struct{ dir, message, name, email string }
+type worktreeAddCall   struct{ repoDir, worktreeDir, branch string; create bool }
+type worktreeRemoveCall struct{ repoDir, worktreeDir string }
 
 func (f *fakeGit) Clone(tokenURL, dir, branch string, depth int) error {
 	f.cloneArgs = &cloneCall{tokenURL, dir, branch, depth}
@@ -64,6 +68,17 @@ func (f *fakeGit) AddAll(dir string) error {
 }
 func (f *fakeGit) Commit(dir, message, name, email string) error {
 	f.commitArgs = &commitCall{dir, message, name, email}
+	return f.err
+}
+func (f *fakeGit) WorktreeAdd(repoDir, worktreeDir, branch string, create bool) error {
+	f.worktreeAddArgs = &worktreeAddCall{repoDir, worktreeDir, branch, create}
+	return f.err
+}
+func (f *fakeGit) WorktreeRemove(repoDir, worktreeDir string) error {
+	f.worktreeRemoveArgs = &worktreeRemoveCall{repoDir, worktreeDir}
+	return f.err
+}
+func (f *fakeGit) WorktreePrune(_ string) error {
 	return f.err
 }
 

@@ -3,10 +3,11 @@ package gitcli
 import "errors"
 
 var (
-	ErrBranchAlreadyExists = errors.New("git: branch already exists")
-	ErrAlreadyUpToDate     = errors.New("git: already up to date")
-	ErrReferenceNotFound   = errors.New("git: reference not found")
-	ErrRemoteRefNotFound   = errors.New("git: couldn't find remote ref")
+	ErrBranchAlreadyExists   = errors.New("git: branch already exists")
+	ErrAlreadyUpToDate       = errors.New("git: already up to date")
+	ErrReferenceNotFound     = errors.New("git: reference not found")
+	ErrRemoteRefNotFound     = errors.New("git: couldn't find remote ref")
+	ErrWorktreeAlreadyExists = errors.New("git: worktree already checked out")
 )
 
 type Git interface {
@@ -18,4 +19,7 @@ type Git interface {
 	IsClean(dir string) (bool, error)
 	AddAll(dir string) error
 	Commit(dir, message, authorName, authorEmail string) error
+	WorktreeAdd(repoDir, worktreeDir, branch string, create bool) error
+	WorktreeRemove(repoDir, worktreeDir string) error
+	WorktreePrune(repoDir string) error
 }

@@ -16,6 +16,9 @@ import (
 // Defined as an interface to allow injection of test doubles.
 type githubClient interface {
 	ShallowClone(org, repoName, dir, migrationBranchName string) (string, error)
+	ShallowCloneWorktree(org, repoName, cacheDir, worktreeDir, migrationBranchName string) (string, error)
+	GitWorktreeRemove(repoDir, worktreeDir string) error
+	GitWorktreePrune(repoDir string) error
 	GetDefaultBranch(owner, repo string) (string, error)
 	GitIsClean(dir string) (bool, error)
 	GitAddAll(dir string) error

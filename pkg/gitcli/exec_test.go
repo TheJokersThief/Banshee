@@ -325,6 +325,74 @@ func TestCommit(t *testing.T) {
 	assert.Equal(t, "alice@example.com", authorEmail)
 }
 
+// ── WorktreeAdd / WorktreeRemove ──────────────────────────────────────────────
+
+func TestWorktreeAddAndRemove(t *testing.T) {
+	bareDir, branch := initBareWithContent(t)
+
+	// Clone the bare repo to use as the main repo dir.
+	repoDir := filepath.Join(t.TempDir(), "repo")
+	require.NoError(t, newGit(t).Clone(bareDir, repoDir, branch, 0))
+
+	g := newGit(t)
+
+	// Add a worktree with a new branch.
+	wtDir := filepath.Join(t.TempDir(), "worktree")
+	require.NoError(t, g.WorktreeAdd(repoDir, wtDir, "wt-branch", true))
+
+	// Verify the worktree exists and is on the expected branch.
+	assert.DirExists(t, wtDir)
+	assert.Equal(t, "wt-branch", headBranch(t, wtDir))
+
+	// Remove the worktree.
+	require.NoError(t, g.WorktreeRemove(repoDir, wtDir))
+	assert.NoDirExists(t, wtDir)
+}
+
+func TestWorktreeAddExistingBranch(t *testing.T) {
+	bareDir, branch := initBareWithContent(t)
+
+	repoDir := filepath.Join(t.TempDir(), "repo")
+	require.NoError(t, newGit(t).Clone(bareDir, repoDir, branch, 0))
+
+	g := newGit(t)
+
+	// Create the branch first, then add worktree without -b.
+	runCmd(t, "git", "-C", repoDir, "branch", "existing-wt-branch")
+
+	wtDir := filepath.Join(t.TempDir(), "worktree")
+	require.NoError(t, g.WorktreeAdd(repoDir, wtDir, "existing-wt-branch", false))
+
+	assert.DirExists(t, wtDir)
+	assert.Equal(t, "existing-wt-branch", headBranch(t, wtDir))
+
+	require.NoError(t, g.WorktreeRemove(repoDir, wtDir))
+}
+
+func TestWorktreeAddStaleRecovery(t *testing.T) {
+	bareDir, branch := initBareWithContent(t)
+
+	repoDir := filepath.Join(t.TempDir(), "repo")
+	require.NoError(t, newGit(t).Clone(bareDir, repoDir, branch, 0))
+
+	g := newGit(t)
+
+	// Create an initial worktree, then delete the directory (simulating interrupted run).
+	wtDir := filepath.Join(t.TempDir(), "worktree")
+	require.NoError(t, g.WorktreeAdd(repoDir, wtDir, "stale-branch", true))
+	require.NoError(t, os.RemoveAll(wtDir))
+
+	// Adding a new worktree for the same branch should recover via prune+retry.
+	wtDir2 := filepath.Join(t.TempDir(), "worktree2")
+	require.NoError(t, g.WorktreeAdd(repoDir, wtDir2, "stale-branch", false))
+
+	assert.DirExists(t, wtDir2)
+	assert.Equal(t, "stale-branch", headBranch(t, wtDir2))
+
+	// Cleanup.
+	require.NoError(t, g.WorktreeRemove(repoDir, wtDir2))
+}
+
 // ── parseGitError ─────────────────────────────────────────────────────────────
 
 func TestParseGitError(t *testing.T) {
@@ -373,6 +441,11 @@ func TestParseGitError(t *testing.T) {
 			name:    "couldn't find remote ref (mixed case)",
 			stderr:  "Fatal: Couldn't Find Remote Ref feature",
 			wantErr: ErrRemoteRefNotFound,
+		},
+		{
+			name:    "worktree already checked out",
+			stderr:  "fatal: 'stale-branch' is already checked out at '/tmp/worktree'",
+			wantErr: ErrWorktreeAlreadyExists,
 		},
 		{
 			name:     "unknown error returns GitError",

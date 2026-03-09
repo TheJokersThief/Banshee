@@ -90,6 +90,27 @@ func (f *fakeGithubClient) ShallowClone(org, repoName, dir, migrationBranchName 
 	return f.defaultBranch, f.git.Checkout(dir, migrationBranchName, true)
 }
 
+func (f *fakeGithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDir, migrationBranchName string) (string, error) {
+	if _, err := os.Stat(cacheDir + "/.git"); os.IsNotExist(err) {
+		if err := f.git.Clone(f.bareRepoURL, cacheDir, f.defaultBranch, 0); err != nil {
+			return "", err
+		}
+	} else {
+		if err := f.git.Checkout(cacheDir, f.defaultBranch, false); err != nil {
+			return "", err
+		}
+	}
+	if err := f.git.WorktreeAdd(cacheDir, worktreeDir, migrationBranchName, true); err != nil {
+		return "", err
+	}
+	return f.defaultBranch, nil
+}
+func (f *fakeGithubClient) GitWorktreeRemove(repoDir, worktreeDir string) error {
+	return f.git.WorktreeRemove(repoDir, worktreeDir)
+}
+func (f *fakeGithubClient) GitWorktreePrune(repoDir string) error {
+	return f.git.WorktreePrune(repoDir)
+}
 func (f *fakeGithubClient) GetDefaultBranch(_, _ string) (string, error) {
 	return f.defaultBranch, nil
 }
@@ -183,6 +204,83 @@ func TestHandleRepo(t *testing.T) {
 	run("git", "clone", "--branch", "migration-branch", bareDir, verifyDir)
 	assert.FileExists(t, filepath.Join(verifyDir, "migrated.txt"),
 		"migrated.txt should have been committed and pushed to the migration branch")
+}
+
+// TestHandleRepoWithWorktree verifies the worktree-based cache flow:
+// push happens, worktree is cleaned up, and the cache dir stays on the default branch.
+func TestHandleRepoWithWorktree(t *testing.T) {
+	bareDir, branch := setupBareRepo(t)
+	run := func(name string, args ...string) {
+		t.Helper()
+		out, err := exec.Command(name, args...).CombinedOutput()
+		require.NoError(t, err, "%s %v: %s", name, args, out)
+	}
+
+	prBodyFile := filepath.Join(t.TempDir(), "pr-body.md")
+	require.NoError(t, os.WriteFile(prBodyFile, []byte("<!-- changelog -->"), 0644))
+
+	cacheDir := t.TempDir()
+
+	globalConf := configs.GlobalConfig{
+		Options: configs.OptionsConfig{
+			LogLevel: "info",
+			CacheRepos: configs.CacheReposConfig{
+				Enabled:   true,
+				Directory: cacheDir,
+			},
+		},
+		Github: configs.GithubConfig{Token: "testtoken"},
+		Defaults: configs.DefaultsConfig{
+			Organisation: "testorg",
+			GitName:      "Test User",
+			GitEmail:     "test@example.com",
+		},
+	}
+	migConf := configs.MigrationConfig{
+		BranchName:  "migration-branch",
+		PRBodyFile:  prBodyFile,
+		PRTitle:     "Test worktree migration",
+		ListOfRepos: []string{"testrepo"},
+		Actions: []configs.Action{
+			{
+				Action:      "run_command",
+				Description: "Add a file",
+				Input:       map[string]string{"command": "touch migrated.txt"},
+			},
+		},
+	}
+
+	b, err := NewBanshee(globalConf, migConf)
+	require.NoError(t, err)
+
+	g := gitcli.NewExecGit(false, logrus.NewEntry(logrus.New()))
+	b.GithubClient = &fakeGithubClient{
+		git:           g,
+		bareRepoURL:   bareDir,
+		defaultBranch: branch,
+		createdPRURL:  "https://github.com/testorg/testrepo/pull/2",
+	}
+
+	htmlURL, err := b.handleRepo(b.log.WithField("repo", "testorg/testrepo"), "testorg", "testorg/testrepo")
+	require.NoError(t, err)
+	assert.Equal(t, "https://github.com/testorg/testrepo/pull/2", htmlURL)
+	assert.Equal(t, 1, b.GithubClient.(*fakeGithubClient).pushCallCount)
+
+	// Verify worktree directory was cleaned up.
+	worktreeDir := b.getWorktreePath("testorg", "testrepo")
+	assert.NoDirExists(t, worktreeDir, "worktree should be cleaned up after handleRepo")
+
+	// Verify cache dir still exists with .git on the default branch.
+	cachePath := b.getCacheRepoPath("testorg", "testrepo")
+	assert.DirExists(t, filepath.Join(cachePath, ".git"), "cache dir should still have .git")
+	out, err := exec.Command("git", "-C", cachePath, "symbolic-ref", "--short", "HEAD").Output()
+	require.NoError(t, err)
+	assert.Equal(t, branch, strings.TrimSpace(string(out)), "cache should remain on default branch")
+
+	// Verify the commit was pushed to the bare repo.
+	verifyDir := filepath.Join(t.TempDir(), "verify")
+	run("git", "clone", "--branch", "migration-branch", bareDir, verifyDir)
+	assert.FileExists(t, filepath.Join(verifyDir, "migrated.txt"))
 }
 
 // TestHandleRepoNoChanges verifies that handleRepo returns an empty URL (no PR)
