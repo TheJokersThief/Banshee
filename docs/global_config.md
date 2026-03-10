@@ -7,7 +7,9 @@
     - [Logging log_level](#logging-log_level)
     - [Assigning code reviewers assign_code_reviewer_if_none_assigned](#assigning-code-reviewers-assign_code_reviewer_if_none_assigned)
     - [Show the output from git commands show_git_output](#show-the-output-from-git-commands-show_git_output)
+    - [Ignoring directories ignore_directories](#ignoring-directories-ignore_directories)
     - [Caching repos cache_repos](#caching-repos-cache_repos)
+    - [Concurrency concurrency](#concurrency-concurrency)
 - [Defaults defaults](#defaults-defaults)
 
 <!-- /TOC -->
@@ -90,6 +92,18 @@ To github.com:TheJokersThief/Banshee.git
    9245979..58616c8  main -> main
 ```
 
+## Ignoring directories (`ignore_directories`)
+
+Lists directories that will be skipped during file-matching actions. This applies to the `replace`, `yaml`, and `json` action types. It does **not** affect `run_command`.
+
+```yaml
+options:
+  ignore_directories:
+    - vendor
+    - node_modules
+    - .git
+```
+
 ## Caching repos (`cache_repos`)
 
 Cloning every repo each time you want to perform a migration can be costly in network and time. To speed things up, you can choose to clone the repo once into the `directory` you choose. Then, when we need to run any migration in the future, it will first pull any new changes from the repo's default branch before running your actions.
@@ -101,6 +115,26 @@ This is particularly appealing if your organisation has several monorepos with l
 We're expecting to run these migrations for thousands of repos, so saving progress allows us to stop and start migrations, run them in batches and recover easily from failures or unexpected changes.
 
 The progress files are serialised in JSON on purpose, instead of a binary format, to allow folks to edit them by hand if they need to. For example, if you want to rerun a migration on only a couple repos, you could change their migration status to false. Or if there's a failure for a repo you can't control, you can manually mark it as completed and deal with it later.
+
+## Concurrency (`concurrency`)
+
+Controls how many repositories are cloned and migrated in parallel. The default is `1` (sequential).
+
+> **Requires `cache_repos.enabled: true`** — parallel workers need a stable on-disk repo cache to avoid conflicting clone operations.
+
+```yaml
+options:
+  concurrency: 4
+  cache_repos:
+    enabled: true
+    directory: "repos.cache"
+```
+
+You can also override this at runtime with the `-j` / `--concurrency` flag:
+
+```bash
+banshee migrate migration.yaml --config config.yaml -j 8
+```
 
 ## Merge options (`merging`)
 

@@ -4,6 +4,7 @@
 <!-- TOC -->
 
 - [Overview](#overview)
+- [Repo Selection](#repo-selection)
 - [Dry-run mode](#dry-run-mode)
 - [Actions](#actions)
   - [Add file](#add-file)
@@ -24,6 +25,31 @@ Migrations should be treated as idempotent, so that you can run the same migrati
 Below is high level flow diagram of how a migration works.
 
 <img src="../images/migration-flow.png" />
+
+# Repo Selection
+
+Exactly one of the following three selectors must be present in each migration config.
+
+| Selector | Type | When to use |
+| -------: | ---- | ----------- |
+| `search_query` | string | Narrow targeting — uses [GitHub code search](https://docs.github.com/en/search-github/searching-on-github/searching-code) syntax to find repos that contain matching content |
+| `all_repos_in_org` | boolean | Broad targeting — applies the migration to **every** repo in the organisation; use with caution |
+| `repos` | list of strings | Explicit targeting — specify the exact repos to migrate; safest default for testing |
+
+```yaml
+# Option 1: GitHub code search query
+search_query: "filename:package.json org:example-org"
+
+# Option 2: All repos in the org (use with caution)
+all_repos_in_org: true
+
+# Option 3: Explicit repo list (recommended for initial testing)
+repos:
+  - example-org/service-a
+  - example-org/service-b
+```
+
+> **Tip:** Start with a `repos` list containing one or two repos, verify the migration behaves as expected, then switch to `search_query` or `all_repos_in_org` for the full rollout.
 
 # Dry-run mode
 

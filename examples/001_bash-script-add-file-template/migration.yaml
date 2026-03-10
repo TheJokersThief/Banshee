@@ -12,7 +12,11 @@ repos:
 organisation: "example-org"
 branch_name: "auto-code-migration/obsv/examples/001_bash-script-add-file-template"
 
-actions: 
+# Prerequisites for the add_workflow.sh script:
+#   - yq v4+  (https://github.com/mikefarah/yq#install)
+#   - envsubst (part of gettext; macOS: brew install gettext)
+
+actions:
   - action: run_command
     description: "Add workflow tracing workflow"
     input: 

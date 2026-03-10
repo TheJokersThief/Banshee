@@ -135,6 +135,7 @@ banshee merge migration.yaml --config config.yaml
 - `version` - Print banshee CLI version
 - `clone <path>` - Clone all repositories involved in the migration
 - `migrate <path>` - Run the migration actions across repositories
+  - `-j, --concurrency <n>` - Number of repos to process in parallel (requires `cache_repos.enabled: true`)
 - `list <path>` - List PRs associated with a migration
 - `merge <path>` - Merge PRs that pass all branch protections
 
