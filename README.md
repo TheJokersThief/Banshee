@@ -206,6 +206,7 @@ See [docs/migrations.md](docs/migrations.md) for action documentation and [examp
 
 - [Bash script and file template](examples/001_bash-script-add-file-template/) - Run a bash script and add files
 - [CODEOWNERS addition](examples/002_add-codeowners/) - Add CODEOWNERS file to repos
+- [JSON package version bump](examples/003_json-package-version/) - Update package.json version, add a field, and remove a deprecated field
 
 # Documentation
 
