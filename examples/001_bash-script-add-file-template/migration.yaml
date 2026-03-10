@@ -5,14 +5,18 @@
 #   - all_repos_in_org (Use every repo in the organisation)
 #   - repos (A static list of repos)
 # search_query: "reference-to-old.url"
-all_repos_in_org: true
-# repos:
-#   - example-org/entity-service
+# all_repos_in_org: true  # WARNING: targets every repo in the org
+repos:
+  - example-org/your-repo-here
 
 organisation: "example-org"
 branch_name: "auto-code-migration/obsv/examples/001_bash-script-add-file-template"
 
-actions: 
+# Prerequisites for the add_workflow.sh script:
+#   - yq v4+  (https://github.com/mikefarah/yq#install)
+#   - envsubst (part of gettext; macOS: brew install gettext)
+
+actions:
   - action: run_command
     description: "Add workflow tracing workflow"
     input: 

@@ -1,0 +1,61 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/TheJokersThief/Banshee/main/schemas/global.json
+
+github:
+  use_github_app: false
+  # Personal Access Token — requires repo, read:org, and pull_request scopes
+  token: "ghp_YOUR_PERSONAL_ACCESS_TOKEN_HERE"
+
+  # GitHub App credentials (alternative to PAT — higher rate limits)
+  # app_id: 0
+  # app_installation_id: 0
+  # app_private_key_filepath: ""
+
+options:
+  # Controls the verbosity of log output (debug, info, warn, error)
+  log_level: info
+
+  # Assign a team to review code if no reviewers are already assigned by a CODEOWNERS file
+  assign_code_reviewer_if_none_assigned: false
+
+  # Show the output from all git actions (e.g. clones, pulls and fetches)
+  show_git_output: false
+
+  # Directories skipped during file-matching actions (replace, yaml, json)
+  # Does NOT affect run_command
+  ignore_directories:
+    - vendor
+    - node_modules
+
+  cache_repos:
+    # If enabled, repos are cloned once and reused across migrations
+    # Required for concurrency > 1
+    enabled: false
+    directory: "repos.cache"
+
+  # Concurrency controls how many repos are processed in parallel
+  # Requires cache_repos.enabled: true
+  # Can be overridden at runtime: banshee migrate ... -j 4
+  # concurrency: 1
+
+  save_progress:
+    # Track progress so migrations can be stopped and resumed
+    enabled: true
+    directory: "repos.cache/_progress"
+    # Number of repos to process per batch (-1 disables batching)
+    batch: -1
+
+  merging:
+    # "merge", "squash", or "rebase"
+    strategy: "merge"
+    # Appended to merge commit message (useful for skipping CI)
+    append_title: "[CI SKIP]"
+
+defaults:
+  # The author and commit email
+  git_email: "no-reply@example.com"
+  # The author and commit name
+  git_name: "Example User"
+  # GitHub organisation slug
+  organisation: "your-org"
+  # Team slug to be added as a reviewer
+  code_reviewer: "your-team"

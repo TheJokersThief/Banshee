@@ -1,0 +1,39 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/TheJokersThief/Banshee/main/schemas/migration.json
+
+# You can only choose one of:
+#   - search_query (A GitHub code search query for matching repos)
+#   - all_repos_in_org (Use every repo in the organisation)
+#   - repos (A static list of repos)
+# search_query: "filename:package.json org:example-org"
+# all_repos_in_org: true  # WARNING: targets every repo in the org
+repos:
+  - example-org/your-repo-here
+
+organisation: "example-org"
+branch_name: "chore/bump-package-version-2-0-0"
+
+actions:
+  - action: json
+    description: "Bump package version to 2.0.0"
+    input:
+      glob: "package.json"
+      sub_action: replace
+      jsonpath: "version"
+      value: "2.0.0"
+  - action: json
+    description: "Add homepage field"
+    input:
+      glob: "package.json"
+      sub_action: add
+      jsonpath: "homepage"
+      value: "https://github.com/example-org/your-repo-here"
+  - action: json
+    description: "Remove deprecated prepublish script"
+    input:
+      glob: "package.json"
+      sub_action: delete
+      jsonpath: "scripts.prepublish"
+
+pr_title: "chore: bump package version to 2.0.0"
+pr_body_file: "examples/003_json-package-version/prbody.md"
+pr_as_drafts: false
