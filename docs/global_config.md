@@ -31,8 +31,8 @@ github:
 
 There are two choices:
 
-* [Personal Access Tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token): Suitable for using your personal account, or a service account. These have a rate limit of 5000 req/s, which is good to keep in mind.
-* [Github Apps](https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/creating-a-github-app): More suitable for mid-to-large organisations. These have a rate limit of 15000 req/s.
+* [Personal Access Tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token): Suitable for using your personal account, or a service account. These have a rate limit of 5,000 req/hr, which is good to keep in mind.
+* [Github Apps](https://docs.github.com/en/apps/creating-github-apps/setting-up-a-github-app/creating-a-github-app): More suitable for mid-to-large organisations. These have a rate limit of 15,000 req/hr.
 
 # Options (`options`)
 
