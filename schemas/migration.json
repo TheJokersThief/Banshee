@@ -5,39 +5,49 @@
         "MigrationConfig": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Banshee migration configuration. Defines the target repositories, actions to perform, and pull request details.",
             "properties": {
                 "search_query": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "GitHub code search query used to select target repositories (e.g. \"filename:package.json org:example-org\"). Mutually exclusive with all_repos_in_org and repos."
                 },
                 "all_repos_in_org": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "When true, targets every repository in the organisation. Use with caution. Mutually exclusive with search_query and repos."
                 },
                 "repos": {
                     "type": "array",
+                    "description": "Explicit list of repositories to migrate (format: org/repo). Recommended for initial testing. Mutually exclusive with search_query and all_repos_in_org.",
                     "items": {
                         "type": "string"
                     }
                 },
                 "organisation": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "GitHub organisation slug. Used as the default for repo operations when not inferred from the repo selector."
                 },
                 "branch_name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Name of the branch created in each target repository for the migration changes."
                 },
                 "actions": {
                     "type": "array",
+                    "description": "Ordered list of actions to perform on each repository. Each action produces a commit if it changes any files.",
                     "items": {
                         "$ref": "#/definitions/Action"
                     }
                 },
                 "pr_title": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Title of the pull request opened for this migration."
                 },
                 "pr_body_file": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Path to a Markdown file used as the pull request body. Resolved relative to the working directory from which Banshee is invoked."
                 },
                 "pr_as_drafts": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "When true, pull requests are created as drafts."
                 }
             },
             "required": [
@@ -53,14 +63,19 @@
         "Action": {
             "type": "object",
             "additionalProperties": false,
+            "description": "A single action to perform on each target repository.",
             "properties": {
                 "action": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Action type to perform.",
+                    "enum": ["replace", "run_command", "yaml", "json", "add_file"]
                 },
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Commit message used when this action produces file changes."
                 },
                 "input": {
+                    "description": "Input parameters for the action. Shape depends on the action type.",
                     "oneOf": [
                         {
                             "$ref": "#/definitions/ReplaceInput"
@@ -90,15 +105,19 @@
         "ReplaceInput": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Input for the replace action. Performs a literal find-and-replace across matching files.",
             "properties": {
                 "old": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "String to search for and replace."
                 },
                 "new": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Replacement string."
                 },
                 "glob": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Glob pattern selecting which files to apply the replacement to. Default: **."
                 }
             },
             "required": ["old", "new"],
@@ -107,9 +126,11 @@
         "RunCommandInput": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Input for the run_command action. Executes an arbitrary bash command inside the cloned repository.",
             "properties": {
                 "command": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Bash command to execute. Runs with the cloned repo as the working directory. The MIGRATION_DIR environment variable is set to the directory containing the migration YAML file."
                 }
             },
             "required": ["command"],
@@ -118,19 +139,24 @@
         "YAMLInput": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Input for the yaml action. Makes targeted changes to YAML files using dot-notation paths.",
             "properties": {
                 "glob": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Glob pattern selecting which YAML files to modify."
                 },
                 "sub_action": {
                     "type": "string",
+                    "description": "YAML operation to perform.",
                     "enum": ["replace", "add", "delete", "list_append"]
                 },
                 "yamlpath": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Dot-notation path to the target key (e.g. firstlevel.secondlevel)."
                 },
                 "value": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Value to set. Not required for the delete sub_action."
                 }
             },
             "required": ["glob", "sub_action", "yamlpath"],
@@ -139,11 +165,25 @@
         "JSONInput": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Input for the json action. Makes targeted changes to JSON files using dot-notation paths while preserving key order and formatting.",
             "properties": {
-                "glob":       { "type": "string" },
-                "sub_action": { "type": "string", "enum": ["replace", "add", "delete", "list_append"] },
-                "jsonpath":   { "type": "string" },
-                "value":      { "type": "string" }
+                "glob": {
+                    "type": "string",
+                    "description": "Glob pattern selecting which JSON files to modify. Default: **/*.json."
+                },
+                "sub_action": {
+                    "type": "string",
+                    "description": "JSON operation to perform.",
+                    "enum": ["replace", "add", "delete", "list_append"]
+                },
+                "jsonpath": {
+                    "type": "string",
+                    "description": "Dot-notation path to the target key (e.g. scripts.build)."
+                },
+                "value": {
+                    "type": "string",
+                    "description": "Value to set. Not required for the delete sub_action. For list_append, the target path must already exist and be an array."
+                }
             },
             "required": ["sub_action", "jsonpath"],
             "title": "JSONInput"
@@ -151,9 +191,16 @@
         "AddFileInput": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Input for the add_file action. Creates a new file in the repository with the specified content.",
             "properties": {
-                "file":    { "type": "string" },
-                "content": { "type": "string" }
+                "file": {
+                    "type": "string",
+                    "description": "Path and filename to create, relative to the repository root (e.g. .github/workflows/ci.yml)."
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Content to write to the new file."
+                }
             },
             "required": ["file", "content"],
             "title": "AddFileInput"

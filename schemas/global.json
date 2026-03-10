@@ -5,15 +5,19 @@
         "GlobalConfig": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Banshee global configuration file. Defines GitHub authentication, runtime options, and default values used across all migrations.",
             "properties": {
                 "github": {
-                    "$ref": "#/definitions/Github"
+                    "$ref": "#/definitions/Github",
+                    "description": "GitHub connection configuration."
                 },
                 "options": {
-                    "$ref": "#/definitions/Options"
+                    "$ref": "#/definitions/Options",
+                    "description": "Runtime behaviour options controlling logging, caching, progress, and merge strategy."
                 },
                 "defaults": {
-                    "$ref": "#/definitions/Defaults"
+                    "$ref": "#/definitions/Defaults",
+                    "description": "Default values used when a migration config does not provide them."
                 }
             },
             "required": [
@@ -26,18 +30,23 @@
         "Defaults": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Default values applied when a migration config does not supply them.",
             "properties": {
                 "git_email": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Author email used in git commits."
                 },
                 "git_name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Author name used in git commits."
                 },
                 "organisation": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Default GitHub organisation slug used when a migration config does not specify one."
                 },
                 "code_reviewer": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Team slug added as a PR reviewer when assign_code_reviewer_if_none_assigned is true."
                 }
             },
             "required": [
@@ -51,21 +60,27 @@
         "Github": {
             "type": "object",
             "additionalProperties": false,
+            "description": "GitHub authentication configuration. Use either a Personal Access Token or GitHub App credentials.",
             "properties": {
                 "use_github_app": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "When true, authenticates using GitHub App credentials (app_id, app_installation_id, app_private_key_filepath) instead of a Personal Access Token."
                 },
                 "token": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Personal Access Token with repo, read:org, and pull_request scopes. Rate limit: 5,000 req/hr."
                 },
                 "app_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "GitHub App ID. Only used when use_github_app is true."
                 },
                 "app_installation_id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "GitHub App installation ID for the target organisation. Only used when use_github_app is true."
                 },
                 "app_private_key_filepath": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Path to the GitHub App private key PEM file. Only used when use_github_app is true."
                 }
             },
             "required": [
@@ -80,30 +95,44 @@
         "Options": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Runtime behaviour options.",
             "properties": {
                 "log_level": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Verbosity of log output. Valid values: debug, info, warn, error. Default: info.",
+                    "enum": ["debug", "info", "warn", "error"]
                 },
                 "assign_code_reviewer_if_none_assigned": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "When true, assigns the defaults.code_reviewer team as a PR reviewer if no reviewers are assigned automatically via CODEOWNERS."
                 },
                 "show_git_output": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "When true, prints output from git operations (clone, pull, fetch) to the console."
                 },
                 "ignore_directories": {
                     "type": "array",
+                    "description": "Directory names skipped during file-matching actions (replace, yaml, json). Does not affect run_command.",
                     "items": {
                         "type": "string"
                     }
                 },
+                "concurrency": {
+                    "type": "integer",
+                    "description": "Number of repositories to clone and migrate in parallel. Requires cache_repos.enabled: true. Can be overridden at runtime with the -j / --concurrency flag. Default: 1.",
+                    "minimum": 1
+                },
                 "cache_repos": {
-                    "$ref": "#/definitions/CacheRepos"
+                    "$ref": "#/definitions/CacheRepos",
+                    "description": "Configuration for persistent on-disk repo caching."
                 },
                 "save_progress": {
-                    "$ref": "#/definitions/SaveProgress"
+                    "$ref": "#/definitions/SaveProgress",
+                    "description": "Configuration for progress tracking, allowing migrations to be stopped and resumed."
                 },
                 "merging": {
-                    "$ref": "#/definitions/Merging"
+                    "$ref": "#/definitions/Merging",
+                    "description": "Configuration for the merge command behaviour."
                 }
             },
             "required": [
@@ -119,12 +148,15 @@
         "CacheRepos": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Persistent repo cache settings. When enabled, repos are cloned once and reused across migrations by pulling the latest default branch changes before each run.",
             "properties": {
                 "enabled": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "When true, repos are cloned once and stored on disk for reuse. Required for concurrency > 1."
                 },
                 "directory": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Filesystem path for storing the cloned repos cache."
                 }
             },
             "required": [
@@ -136,12 +168,16 @@
         "Merging": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Options for the merge command.",
             "properties": {
                 "strategy": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Merge strategy for the merge command. Valid values: merge, squash, rebase.",
+                    "enum": ["merge", "squash", "rebase"]
                 },
                 "append_title": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "String appended to the merge commit title. Useful for skipping CI (e.g. \"[CI SKIP]\")."
                 }
             },
             "required": [
@@ -153,15 +189,19 @@
         "SaveProgress": {
             "type": "object",
             "additionalProperties": false,
+            "description": "Progress tracking settings. Progress files are serialised JSON and can be edited by hand to rerun or skip specific repos.",
             "properties": {
                 "enabled": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "description": "When true, migration progress is tracked on disk so runs can be stopped and resumed."
                 },
                 "directory": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Filesystem path for storing progress files."
                 },
                 "batch": {
-                    "type": "integer"
+                    "type": "integer",
+                    "description": "Number of repos to process per run. Use -1 to disable batching and process all repos in one run."
                 }
             },
             "required": [
