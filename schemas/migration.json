@@ -73,6 +73,9 @@
                         },
                         {
                             "$ref": "#/definitions/JSONInput"
+                        },
+                        {
+                            "$ref": "#/definitions/AddFileInput"
                         }
                     ]
                 }
@@ -120,7 +123,8 @@
                     "type": "string"
                 },
                 "sub_action": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": ["replace", "add", "delete", "list_append"]
                 },
                 "yamlpath": {
                     "type": "string"
@@ -143,6 +147,16 @@
             },
             "required": ["sub_action", "jsonpath"],
             "title": "JSONInput"
+        },
+        "AddFileInput": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "file":    { "type": "string" },
+                "content": { "type": "string" }
+            },
+            "required": ["file", "content"],
+            "title": "AddFileInput"
         }
     }
 }
