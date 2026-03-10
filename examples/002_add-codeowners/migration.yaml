@@ -1,6 +1,12 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/TheJokersThief/Banshee/main/schemas/migration.json
 
-all_repos_in_org: true
+# You can only choose one of:
+#   - search_query (A GitHub code search query for matching repos)
+#   - all_repos_in_org (Use every repo in the organisation)
+#   - repos (A static list of repos)
+# all_repos_in_org: true  # WARNING: targets every repo in the org
+repos:
+  - example-org/your-repo-here
 
 organisation: "example-org"
 branch_name: "auto-code-migration/qol/add-codeowners"

@@ -5,9 +5,9 @@
 #   - all_repos_in_org (Use every repo in the organisation)
 #   - repos (A static list of repos)
 # search_query: "reference-to-old.url"
-all_repos_in_org: true
-# repos:
-#   - example-org/entity-service
+# all_repos_in_org: true  # WARNING: targets every repo in the org
+repos:
+  - example-org/your-repo-here
 
 organisation: "example-org"
 branch_name: "auto-code-migration/obsv/examples/001_bash-script-add-file-template"
