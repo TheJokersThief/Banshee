@@ -48,9 +48,9 @@ func (f *fakeGit) Checkout(dir, branch string, create bool) error {
 	f.checkoutArgs = &checkoutCall{dir, branch, create}
 	return f.err
 }
-func (f *fakeGit) Fetch(dir, tokenURL, branch string) error {
+func (f *fakeGit) Fetch(dir, tokenURL, branch string) (bool, error) {
 	f.fetchArgs = &fetchCall{dir, tokenURL, branch}
-	return f.err
+	return f.err == nil, f.err
 }
 func (f *fakeGit) Pull(dir, tokenURL, branch string) error {
 	f.pullArgs = &pullCall{dir, tokenURL, branch}

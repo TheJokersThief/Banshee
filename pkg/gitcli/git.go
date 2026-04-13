@@ -13,7 +13,7 @@ var (
 type Git interface {
 	Clone(tokenURL, dir, branch string, depth int) error
 	Checkout(dir, branch string, create bool) error
-	Fetch(dir, tokenURL, branch string) error
+	Fetch(dir, tokenURL, branch string) (bool, error)
 	Pull(dir, tokenURL, branch string) error
 	Push(dir, tokenURL, branch string) error
 	IsClean(dir string) (bool, error)

@@ -112,14 +112,18 @@ func (g *ExecGit) Checkout(dir, branch string, create bool) error {
 	return err
 }
 
-// Fetch fetches branch from the given URL. ErrRemoteRefNotFound,
-// ErrAlreadyUpToDate, "refusing to fetch into current branch", and
-// "shallow update not allowed" are swallowed.
-func (g *ExecGit) Fetch(dir, tokenURL, branch string) error {
+// Fetch fetches branch from the given URL. Returns true if the branch was
+// found on the remote, false if it does not exist. ErrAlreadyUpToDate,
+// "refusing to fetch into current branch", and "shallow update not allowed"
+// are swallowed (branch is considered found in those cases).
+func (g *ExecGit) Fetch(dir, tokenURL, branch string) (bool, error) {
 	refspec := fmt.Sprintf("%s:%s", branch, branch)
 	_, err := g.run(dir, "fetch", tokenURL, refspec)
-	if errors.Is(err, ErrRemoteRefNotFound) || errors.Is(err, ErrAlreadyUpToDate) {
-		return nil
+	if errors.Is(err, ErrRemoteRefNotFound) {
+		return false, nil
+	}
+	if errors.Is(err, ErrAlreadyUpToDate) {
+		return true, nil
 	}
 	// When we are already on the target branch git refuses to update it via
 	// refspec. Pull handles the actual sync in that case.
@@ -128,10 +132,10 @@ func (g *ExecGit) Fetch(dir, tokenURL, branch string) error {
 	if errors.As(err, &ge) {
 		if strings.Contains(ge.Stderr, "refusing to fetch") ||
 			strings.Contains(ge.Stderr, "shallow update not allowed") {
-			return nil
+			return true, nil
 		}
 	}
-	return err
+	return err == nil, err
 }
 
 // Pull hard-resets HEAD then fast-forward pulls from the given URL.
@@ -197,14 +201,31 @@ func (g *ExecGit) WorktreeAdd(repoDir, worktreeDir, branch string, create bool) 
 	}
 
 	_, err := g.run("", args...)
-	if errors.Is(err, ErrWorktreeAlreadyExists) {
-		// Stale worktree from a previous interrupted run — prune stale references and retry.
+	if isWorktreeExistsErr(err) {
+		// Stale worktree from a previous interrupted run — force-remove,
+		// prune metadata, delete the physical directory, then retry.
+		// WorktreeRemove may fail if git no longer tracks this worktree; that's fine.
+		g.run("", "-C", repoDir, "worktree", "remove", "--force", worktreeDir)
 		if _, pruneErr := g.run("", "-C", repoDir, "worktree", "prune"); pruneErr != nil {
 			return fmt.Errorf("pruning stale worktrees before retry: %w", pruneErr)
 		}
+		// Remove the physical directory if it still exists (covers the case
+		// where only the directory remains but git's worktree metadata is gone).
+		os.RemoveAll(worktreeDir)
 		_, err = g.run("", args...)
 	}
 	return err
+}
+
+// isWorktreeExistsErr returns true when git reports the worktree (or its
+// target path) already exists — either because the worktree is still tracked
+// by git or because the directory remains from an interrupted run.
+func isWorktreeExistsErr(err error) bool {
+	if errors.Is(err, ErrWorktreeAlreadyExists) {
+		return true
+	}
+	var ge *GitError
+	return errors.As(err, &ge) && strings.Contains(ge.Stderr, "already exists")
 }
 
 // WorktreeRemove forcefully removes a git worktree.
