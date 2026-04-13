@@ -214,7 +214,7 @@ func (gc *GithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDi
 	if err != nil {
 		return "", err
 	}
-	remoteExists, err := gc.git.Fetch(cacheDir, fetchURL, migrationBranchName)
+	_, err = gc.git.Fetch(cacheDir, fetchURL, migrationBranchName)
 	if err != nil {
 		return "", err
 	}
@@ -223,17 +223,10 @@ func (gc *GithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDi
 		return "", err
 	}
 
-	// Only pull if the branch existed on the remote.
-	if remoteExists {
-		pullURL, err := gc.freshTokenURL(org, repoName)
-		if err != nil {
-			return "", err
-		}
-		if err := gc.git.Pull(worktreeDir, pullURL, migrationBranchName); err != nil {
-			return "", err
-		}
-	} else {
-		gc.log.Debug("Migration branch is new, skipping pull in worktree")
+	// Always reset the migration branch to the default branch so every run
+	// produces a clean, deterministic set of commits from the migration YAML.
+	if err := gc.git.ResetToRef(worktreeDir, defaultBranch); err != nil {
+		return "", err
 	}
 
 	return defaultBranch, nil
