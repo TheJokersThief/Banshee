@@ -302,6 +302,11 @@ func (b *Banshee) applyActionAndCommit(log *logrus.Entry, dir, actionID, descrip
 		}
 		if !isClean {
 			log.Info("[dry-run] Would commit: ", description)
+			// Clean the working tree so uncommitted changes from this action
+			// don't leak into the next action's diff check.
+			if resetErr := b.GithubClient.GitResetToRef(dir, "HEAD"); resetErr != nil {
+				return false, resetErr
+			}
 			return true, nil
 		}
 		return false, nil
