@@ -158,11 +158,14 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 	if err != nil {
 		return "", err
 	}
-	if err := gc.git.Fetch(dir, migURL, migrationBranchName); err != nil {
+	found, err := gc.git.Fetch(dir, migURL, migrationBranchName)
+	if err != nil {
 		return "", err
 	}
-	if err := gc.git.Pull(dir, migURL, migrationBranchName); err != nil {
-		return "", err
+	if found {
+		if err := gc.git.Pull(dir, migURL, migrationBranchName); err != nil {
+			return "", err
+		}
 	}
 
 	return defaultBranch, nil
@@ -215,12 +218,13 @@ func (gc *GithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDi
 		return "", err
 	}
 
-	// Fetch the migration branch from remote (swallow "not found").
+	// Fetch the migration branch from remote (returns false when branch is new).
 	fetchURL, err := gc.freshTokenURL(org, repoName)
 	if err != nil {
 		return "", err
 	}
-	if err := gc.git.Fetch(cacheDir, fetchURL, migrationBranchName); err != nil {
+	remoteExists, err := gc.git.Fetch(cacheDir, fetchURL, migrationBranchName)
+	if err != nil {
 		return "", err
 	}
 
@@ -228,16 +232,16 @@ func (gc *GithubClient) ShallowCloneWorktree(org, repoName, cacheDir, worktreeDi
 		return "", err
 	}
 
-	// If the branch existed remotely, pull latest into the worktree.
-	pullURL, err := gc.freshTokenURL(org, repoName)
-	if err != nil {
-		return "", err
-	}
-	if pullErr := gc.git.Pull(worktreeDir, pullURL, migrationBranchName); pullErr != nil {
-		// ErrReferenceNotFound means the branch is new (local only) — safe to ignore.
-		if !errors.Is(pullErr, gitcli.ErrReferenceNotFound) {
-			return "", pullErr
+	// Only pull if the branch existed on the remote.
+	if remoteExists {
+		pullURL, err := gc.freshTokenURL(org, repoName)
+		if err != nil {
+			return "", err
 		}
+		if err := gc.git.Pull(worktreeDir, pullURL, migrationBranchName); err != nil {
+			return "", err
+		}
+	} else {
 		gc.log.Debug("Migration branch is new, skipping pull in worktree")
 	}
 

@@ -151,7 +151,9 @@ func TestFetch(t *testing.T) {
 	require.NoError(t, newGit(t).Clone(bareDir, local, branch, 0))
 
 	// Fetch the feature branch into the local repo.
-	require.NoError(t, newGit(t).Fetch(local, bareDir, "feature-branch"))
+	found, err := newGit(t).Fetch(local, bareDir, "feature-branch")
+	require.NoError(t, err)
+	assert.True(t, found, "branch exists on remote, should return true")
 
 	// Verify the local branch was created.
 	out, err := exec.Command("git", "-C", local, "branch").Output()
@@ -169,8 +171,10 @@ func TestFetchNonexistentBranch(t *testing.T) {
 	local := filepath.Join(t.TempDir(), "local")
 	require.NoError(t, newGit(t).Clone(bareDir, local, branch, 0))
 
-	// Fetching a branch that doesn't exist should return nil (error swallowed).
-	require.NoError(t, newGit(t).Fetch(local, bareDir, "does-not-exist"))
+	// Fetching a branch that doesn't exist should return false (not found).
+	found, err := newGit(t).Fetch(local, bareDir, "does-not-exist")
+	require.NoError(t, err)
+	assert.False(t, found, "branch does not exist on remote, should return false")
 }
 
 func TestFetchOnCurrentBranch(t *testing.T) {
@@ -180,8 +184,10 @@ func TestFetchOnCurrentBranch(t *testing.T) {
 	local := filepath.Join(t.TempDir(), "local")
 	require.NoError(t, newGit(t).Clone(bareDir, local, branch, 0))
 
-	// We are on `branch`; fetching branch:branch should be swallowed.
-	require.NoError(t, newGit(t).Fetch(local, bareDir, branch))
+	// We are on `branch`; fetching branch:branch should be swallowed (branch exists).
+	found, err := newGit(t).Fetch(local, bareDir, branch)
+	require.NoError(t, err)
+	assert.True(t, found, "current branch exists on remote, should return true")
 }
 
 // ── Pull ─────────────────────────────────────────────────────────────────────
@@ -392,6 +398,33 @@ func TestWorktreeAddStaleRecovery(t *testing.T) {
 
 	// Cleanup.
 	require.NoError(t, g.WorktreeRemove(repoDir, wtDir2))
+}
+
+func TestWorktreeAddStaleDirectoryRecovery(t *testing.T) {
+	bareDir, branch := initBareWithContent(t)
+
+	repoDir := filepath.Join(t.TempDir(), "repo")
+	require.NoError(t, newGit(t).Clone(bareDir, repoDir, branch, 0))
+
+	g := newGit(t)
+
+	// Create a worktree, then prune its metadata but leave the directory on disk.
+	// This simulates the state left behind by a previous interrupted run where
+	// git no longer tracks the worktree but the physical directory remains.
+	wtDir := filepath.Join(t.TempDir(), "worktree")
+	require.NoError(t, g.WorktreeAdd(repoDir, wtDir, "leftover-branch", true))
+	require.NoError(t, g.WorktreeRemove(repoDir, wtDir))
+	// Re-create the directory to simulate the leftover.
+	require.NoError(t, os.MkdirAll(wtDir, 0755))
+
+	// WorktreeAdd should recover by removing the stale directory and retrying.
+	require.NoError(t, g.WorktreeAdd(repoDir, wtDir, "leftover-branch", false))
+
+	assert.DirExists(t, wtDir)
+	assert.Equal(t, "leftover-branch", headBranch(t, wtDir))
+
+	// Cleanup.
+	require.NoError(t, g.WorktreeRemove(repoDir, wtDir))
 }
 
 // ── parseGitError ─────────────────────────────────────────────────────────────
