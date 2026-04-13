@@ -205,13 +205,13 @@ func (g *ExecGit) WorktreeAdd(repoDir, worktreeDir, branch string, create bool) 
 		// Stale worktree from a previous interrupted run — force-remove,
 		// prune metadata, delete the physical directory, then retry.
 		// WorktreeRemove may fail if git no longer tracks this worktree; that's fine.
-		g.run("", "-C", repoDir, "worktree", "remove", "--force", worktreeDir)
+		_, _ = g.run("", "-C", repoDir, "worktree", "remove", "--force", worktreeDir)
 		if _, pruneErr := g.run("", "-C", repoDir, "worktree", "prune"); pruneErr != nil {
 			return fmt.Errorf("pruning stale worktrees before retry: %w", pruneErr)
 		}
 		// Remove the physical directory if it still exists (covers the case
 		// where only the directory remains but git's worktree metadata is gone).
-		os.RemoveAll(worktreeDir)
+		_ = os.RemoveAll(worktreeDir)
 		_, err = g.run("", args...)
 	}
 	return err
