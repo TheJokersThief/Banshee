@@ -24,6 +24,7 @@ type fakeGit struct {
 	commitArgs        *commitCall
 	worktreeAddArgs   *worktreeAddCall
 	worktreeRemoveArgs *worktreeRemoveCall
+	resetToRefArgs    *resetToRefCall
 
 	isCleanResult bool
 	err           error
@@ -39,6 +40,7 @@ type addAllCall  struct{ dir string }
 type commitCall        struct{ dir, message, name, email string }
 type worktreeAddCall   struct{ repoDir, worktreeDir, branch string; create bool }
 type worktreeRemoveCall struct{ repoDir, worktreeDir string }
+type resetToRefCall    struct{ dir, ref string }
 
 func (f *fakeGit) Clone(tokenURL, dir, branch string, depth int) error {
 	f.cloneArgs = &cloneCall{tokenURL, dir, branch, depth}
@@ -81,6 +83,10 @@ func (f *fakeGit) WorktreeRemove(repoDir, worktreeDir string) error {
 	return f.err
 }
 func (f *fakeGit) WorktreePrune(_ string) error {
+	return f.err
+}
+func (f *fakeGit) ResetToRef(dir, ref string) error {
+	f.resetToRefArgs = &resetToRefCall{dir, ref}
 	return f.err
 }
 

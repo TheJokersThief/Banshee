@@ -122,6 +122,9 @@ func (f *fakeGithubClient) GitAddAll(dir string) error            { return f.git
 func (f *fakeGithubClient) GitCommit(dir, msg, name, email string) error {
 	return f.git.Commit(dir, msg, name, email)
 }
+func (f *fakeGithubClient) GitResetToRef(dir, ref string) error {
+	return f.git.ResetToRef(dir, ref)
+}
 func (f *fakeGithubClient) Push(branch, dir, _, _ string) error {
 	f.pushCallCount.Add(1)
 	return f.git.Push(dir, f.bareRepoURL, branch)

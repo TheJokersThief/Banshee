@@ -16,6 +16,7 @@ type Git interface {
 	Fetch(dir, tokenURL, branch string) (bool, error)
 	Pull(dir, tokenURL, branch string) error
 	Push(dir, tokenURL, branch string) error
+	ResetToRef(dir, ref string) error
 	IsClean(dir string) (bool, error)
 	AddAll(dir string) error
 	Commit(dir, message, authorName, authorEmail string) error

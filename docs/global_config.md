@@ -106,7 +106,7 @@ options:
 
 ## Caching repos (`cache_repos`)
 
-Cloning every repo each time you want to perform a migration can be costly in network and time. To speed things up, you can choose to clone the repo once into the `directory` you choose. Then, when we need to run any migration in the future, it will first pull any new changes from the repo's default branch before running your actions.
+Cloning every repo each time you want to perform a migration can be costly in network and time. To speed things up, you can choose to clone the repo once into the `directory` you choose. Then, when we need to run any migration in the future, it will pull the latest default branch into the cache and reset the migration branch to it before running your actions. Each run produces a clean set of commits from the migration YAML.
 
 This is particularly appealing if your organisation has several monorepos with long git histories.
 

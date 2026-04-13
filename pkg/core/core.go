@@ -23,6 +23,7 @@ type githubClient interface {
 	GitIsClean(dir string) (bool, error)
 	GitAddAll(dir string) error
 	GitCommit(dir, message, name, email string) error
+	GitResetToRef(dir, ref string) error
 	Push(branch, dir, org, repoName string) error
 	FindPullRequest(org, repo, baseBranch, headBranch string) (*gogithub.PullRequest, error)
 	CreatePullRequest(org, repo, title, body, baseBranch, mergeBranch string, asDraft bool) (string, error)

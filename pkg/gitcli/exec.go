@@ -155,10 +155,17 @@ func (g *ExecGit) Pull(dir, tokenURL, branch string) error {
 // Push pushes the current HEAD to branch on the remote using an unambiguous
 // refs/heads/ refspec. ErrAlreadyUpToDate is swallowed.
 func (g *ExecGit) Push(dir, tokenURL, branch string) error {
-	_, err := g.run(dir, "push", tokenURL, "HEAD:refs/heads/"+branch)
+	_, err := g.run(dir, "push", "--force", tokenURL, "HEAD:refs/heads/"+branch)
 	if errors.Is(err, ErrAlreadyUpToDate) {
 		return nil
 	}
+	return err
+}
+
+// ResetToRef hard-resets the current branch to the given ref (branch name,
+// tag, or commit SHA). All uncommitted changes are discarded.
+func (g *ExecGit) ResetToRef(dir, ref string) error {
+	_, err := g.run(dir, "reset", "--hard", ref)
 	return err
 }
 

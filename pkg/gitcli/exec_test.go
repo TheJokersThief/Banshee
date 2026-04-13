@@ -246,6 +246,89 @@ func TestPush(t *testing.T) {
 	assert.FileExists(t, filepath.Join(verify, "pushed.txt"))
 }
 
+func TestPushForceOverwritesDivergedHistory(t *testing.T) {
+	bareDir, branch := initBareWithContent(t)
+
+	// Clone to local and make a commit.
+	local := filepath.Join(t.TempDir(), "local")
+	require.NoError(t, newGit(t).Clone(bareDir, local, branch, 0))
+	runCmd(t, "git", "-C", local, "config", "user.email", "test@example.com")
+	runCmd(t, "git", "-C", local, "config", "user.name", "Test User")
+
+	require.NoError(t, os.WriteFile(filepath.Join(local, "a.txt"), []byte("a"), 0644))
+	require.NoError(t, newGit(t).AddAll(local))
+	require.NoError(t, newGit(t).Commit(local, "local commit", "Test User", "test@example.com"))
+	require.NoError(t, newGit(t).Push(local, bareDir, branch))
+
+	// Reset local to before the commit, add a different commit — history diverges.
+	require.NoError(t, newGit(t).ResetToRef(local, "HEAD~1"))
+	require.NoError(t, os.WriteFile(filepath.Join(local, "b.txt"), []byte("b"), 0644))
+	require.NoError(t, newGit(t).AddAll(local))
+	require.NoError(t, newGit(t).Commit(local, "diverged commit", "Test User", "test@example.com"))
+
+	// Push should succeed (force) even though history diverged.
+	require.NoError(t, newGit(t).Push(local, bareDir, branch))
+
+	// Verify the bare repo has b.txt (from the force-push) and not a.txt.
+	verify := filepath.Join(t.TempDir(), "verify")
+	runCmd(t, "git", "clone", bareDir, verify)
+	assert.FileExists(t, filepath.Join(verify, "b.txt"))
+	assert.NoFileExists(t, filepath.Join(verify, "a.txt"))
+}
+
+// ── ResetToRef ───────────────────────────────────────────────────────────────
+
+func TestResetToRef(t *testing.T) {
+	dir := t.TempDir()
+	branch := initRepo(t, dir)
+	g := newGit(t)
+
+	// Create a file and commit it.
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "file.txt"), []byte("v1"), 0644))
+	require.NoError(t, g.AddAll(dir))
+	require.NoError(t, g.Commit(dir, "add file", "Test", "test@example.com"))
+
+	// Record the current HEAD.
+	headAfterCommit := runCmd(t, "git", "-C", dir, "rev-parse", "HEAD")
+
+	// Add another commit so HEAD moves forward.
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "file.txt"), []byte("v2"), 0644))
+	require.NoError(t, g.AddAll(dir))
+	require.NoError(t, g.Commit(dir, "update file", "Test", "test@example.com"))
+
+	// Reset back to the first commit.
+	require.NoError(t, g.ResetToRef(dir, headAfterCommit))
+
+	// HEAD should now match the earlier commit.
+	headNow := runCmd(t, "git", "-C", dir, "rev-parse", "HEAD")
+	assert.Equal(t, headAfterCommit, headNow)
+
+	// File content should match the first commit.
+	content, err := os.ReadFile(filepath.Join(dir, "file.txt"))
+	require.NoError(t, err)
+	assert.Equal(t, "v1", string(content))
+
+	_ = branch // silence unused
+}
+
+func TestResetToRefBranchName(t *testing.T) {
+	dir := t.TempDir()
+	branch := initRepo(t, dir)
+	g := newGit(t)
+
+	// Add a commit on a feature branch.
+	require.NoError(t, g.Checkout(dir, "feature", true))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "feat.txt"), []byte("feature"), 0644))
+	require.NoError(t, g.AddAll(dir))
+	require.NoError(t, g.Commit(dir, "feature commit", "Test", "test@example.com"))
+
+	// Reset the feature branch back to the default branch.
+	require.NoError(t, g.ResetToRef(dir, branch))
+
+	// feat.txt should no longer exist.
+	assert.NoFileExists(t, filepath.Join(dir, "feat.txt"))
+}
+
 // ── IsClean ───────────────────────────────────────────────────────────────────
 
 func TestIsClean(t *testing.T) {
