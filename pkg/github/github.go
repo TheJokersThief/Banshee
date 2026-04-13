@@ -153,19 +153,10 @@ func (gc *GithubClient) ShallowClone(org, repoName, dir, migrationBranchName str
 		return "", err
 	}
 
-	// Refresh token before migration-branch network ops.
-	migURL, err := gc.freshTokenURL(org, repoName)
-	if err != nil {
+	// Always reset the migration branch to the default branch so every run
+	// produces a clean, deterministic set of commits from the migration YAML.
+	if err := gc.git.ResetToRef(dir, defaultBranch); err != nil {
 		return "", err
-	}
-	found, err := gc.git.Fetch(dir, migURL, migrationBranchName)
-	if err != nil {
-		return "", err
-	}
-	if found {
-		if err := gc.git.Pull(dir, migURL, migrationBranchName); err != nil {
-			return "", err
-		}
 	}
 
 	return defaultBranch, nil
