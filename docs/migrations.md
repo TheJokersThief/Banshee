@@ -20,7 +20,7 @@
 
 Every migration performs a set of actions on the repo. Actions do things like find and replace text, or run a premade command/script. If the action changed anything, we push the changes to a branch and cut a new Pull Request on GitHub to propose the changes to codeowners.
 
-Migrations should be treated as idempotent, so that you can run the same migration several times but only have exact same changes made each time. 
+Migrations are idempotent. Every run resets the migration branch to the default branch and replays all actions from scratch, producing a clean, deterministic set of commits derived entirely from the migration YAML. This means you can safely re-run a migration after editing the YAML (adding, removing, or reordering actions) without producing duplicate commits. The resulting branch is force-pushed to the remote.
 
 Below is high level flow diagram of how a migration works.
 
@@ -61,7 +61,8 @@ banshee migrate -d migration.yaml
 ```
 
 In dry-run mode Banshee:
-- Clones every target repo and applies all actions exactly as normal
+- Clones every target repo, resets the migration branch to the default branch, and applies all actions exactly as normal
+- Resets the working tree between actions so each action's diff is evaluated independently
 - Logs `[dry-run] Would commit: <description>` for each action that produced changes, instead of creating a commit
 - Logs `[dry-run] Would push branch and open/update PR for <repo>` instead of pushing or touching GitHub
 - Does **not** update the progress file, so re-running without `--dry-run` will process the full repo list again
