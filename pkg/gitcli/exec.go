@@ -162,6 +162,13 @@ func (g *ExecGit) Push(dir, tokenURL, branch string) error {
 	return err
 }
 
+// ResetToRef hard-resets the current branch to the given ref (branch name,
+// tag, or commit SHA). All uncommitted changes are discarded.
+func (g *ExecGit) ResetToRef(dir, ref string) error {
+	_, err := g.run(dir, "reset", "--hard", ref)
+	return err
+}
+
 // IsClean returns true when the working tree has no changes.
 func (g *ExecGit) IsClean(dir string) (bool, error) {
 	out, err := g.run(dir, "status", "--porcelain")
