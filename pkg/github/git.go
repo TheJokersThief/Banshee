@@ -28,6 +28,11 @@ func (gc *GithubClient) GitCommit(dir, message, name, email string) error {
 	return gc.git.Commit(dir, message, name, email)
 }
 
+// GitResetToRef hard-resets the current branch to the given ref.
+func (gc *GithubClient) GitResetToRef(dir, ref string) error {
+	return gc.git.ResetToRef(dir, ref)
+}
+
 // GitWorktreeRemove removes a git worktree from the given repo directory.
 func (gc *GithubClient) GitWorktreeRemove(repoDir, worktreeDir string) error {
 	return gc.git.WorktreeRemove(repoDir, worktreeDir)
