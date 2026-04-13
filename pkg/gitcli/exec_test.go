@@ -246,6 +246,36 @@ func TestPush(t *testing.T) {
 	assert.FileExists(t, filepath.Join(verify, "pushed.txt"))
 }
 
+func TestPushForceOverwritesDivergedHistory(t *testing.T) {
+	bareDir, branch := initBareWithContent(t)
+
+	// Clone to local and make a commit.
+	local := filepath.Join(t.TempDir(), "local")
+	require.NoError(t, newGit(t).Clone(bareDir, local, branch, 0))
+	runCmd(t, "git", "-C", local, "config", "user.email", "test@example.com")
+	runCmd(t, "git", "-C", local, "config", "user.name", "Test User")
+
+	require.NoError(t, os.WriteFile(filepath.Join(local, "a.txt"), []byte("a"), 0644))
+	require.NoError(t, newGit(t).AddAll(local))
+	require.NoError(t, newGit(t).Commit(local, "local commit", "Test User", "test@example.com"))
+	require.NoError(t, newGit(t).Push(local, bareDir, branch))
+
+	// Reset local to before the commit, add a different commit — history diverges.
+	require.NoError(t, newGit(t).ResetToRef(local, "HEAD~1"))
+	require.NoError(t, os.WriteFile(filepath.Join(local, "b.txt"), []byte("b"), 0644))
+	require.NoError(t, newGit(t).AddAll(local))
+	require.NoError(t, newGit(t).Commit(local, "diverged commit", "Test User", "test@example.com"))
+
+	// Push should succeed (force) even though history diverged.
+	require.NoError(t, newGit(t).Push(local, bareDir, branch))
+
+	// Verify the bare repo has b.txt (from the force-push) and not a.txt.
+	verify := filepath.Join(t.TempDir(), "verify")
+	runCmd(t, "git", "clone", bareDir, verify)
+	assert.FileExists(t, filepath.Join(verify, "b.txt"))
+	assert.NoFileExists(t, filepath.Join(verify, "a.txt"))
+}
+
 // ── ResetToRef ───────────────────────────────────────────────────────────────
 
 func TestResetToRef(t *testing.T) {

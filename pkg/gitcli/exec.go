@@ -155,7 +155,7 @@ func (g *ExecGit) Pull(dir, tokenURL, branch string) error {
 // Push pushes the current HEAD to branch on the remote using an unambiguous
 // refs/heads/ refspec. ErrAlreadyUpToDate is swallowed.
 func (g *ExecGit) Push(dir, tokenURL, branch string) error {
-	_, err := g.run(dir, "push", tokenURL, "HEAD:refs/heads/"+branch)
+	_, err := g.run(dir, "push", "--force", tokenURL, "HEAD:refs/heads/"+branch)
 	if errors.Is(err, ErrAlreadyUpToDate) {
 		return nil
 	}
