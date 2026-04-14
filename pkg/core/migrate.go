@@ -338,13 +338,23 @@ func (b *Banshee) commitIfDirty(log *logrus.Entry, dir, message string) (bool, e
 }
 
 func (b *Banshee) getCacheRepoPath(org, repo string) string {
-	return fmt.Sprintf("%s/%s-%s", b.GlobalConfig.Options.CacheRepos.Directory, org, repo)
+	path := fmt.Sprintf("%s/%s-%s", b.GlobalConfig.Options.CacheRepos.Directory, org, repo)
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return path
+	}
+	return abs
 }
 
 func (b *Banshee) getWorktreePath(org, repo string) string {
 	safeBranch := strings.ReplaceAll(b.MigrationConfig.BranchName, "/", "-")
-	return fmt.Sprintf("%s/%s-%s-wt/%s",
+	path := fmt.Sprintf("%s/%s-%s-wt/%s",
 		b.GlobalConfig.Options.CacheRepos.Directory, org, repo, safeBranch)
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return path
+	}
+	return abs
 }
 
 // Handle the migration for a repo
