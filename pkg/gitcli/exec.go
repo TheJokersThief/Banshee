@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -200,25 +201,32 @@ func (g *ExecGit) Commit(dir, message, authorName, authorEmail string) error {
 // When create=true, a new branch is created (-b). If the worktree already
 // exists (stale from an interrupted run), it is removed and retried.
 func (g *ExecGit) WorktreeAdd(repoDir, worktreeDir, branch string, create bool) error {
-	args := []string{"-C", repoDir, "worktree", "add"}
-	if create {
-		args = append(args, "-b", branch, worktreeDir)
-	} else {
-		args = append(args, worktreeDir, branch)
+	// Resolve worktreeDir to an absolute path so that git -C <repoDir> does
+	// not re-interpret it relative to repoDir.
+	absWT, err := filepath.Abs(worktreeDir)
+	if err != nil {
+		return fmt.Errorf("resolving worktree path: %w", err)
 	}
 
-	_, err := g.run("", args...)
+	args := []string{"-C", repoDir, "worktree", "add"}
+	if create {
+		args = append(args, "-b", branch, absWT)
+	} else {
+		args = append(args, absWT, branch)
+	}
+
+	_, err = g.run("", args...)
 	if isWorktreeExistsErr(err) {
 		// Stale worktree from a previous interrupted run — force-remove,
 		// prune metadata, delete the physical directory, then retry.
 		// WorktreeRemove may fail if git no longer tracks this worktree; that's fine.
-		_, _ = g.run("", "-C", repoDir, "worktree", "remove", "--force", worktreeDir)
+		_, _ = g.run("", "-C", repoDir, "worktree", "remove", "--force", absWT)
 		if _, pruneErr := g.run("", "-C", repoDir, "worktree", "prune"); pruneErr != nil {
 			return fmt.Errorf("pruning stale worktrees before retry: %w", pruneErr)
 		}
 		// Remove the physical directory if it still exists (covers the case
 		// where only the directory remains but git's worktree metadata is gone).
-		_ = os.RemoveAll(worktreeDir)
+		_ = os.RemoveAll(absWT)
 		_, err = g.run("", args...)
 	}
 	return err
@@ -237,7 +245,11 @@ func isWorktreeExistsErr(err error) bool {
 
 // WorktreeRemove forcefully removes a git worktree.
 func (g *ExecGit) WorktreeRemove(repoDir, worktreeDir string) error {
-	_, err := g.run("", "-C", repoDir, "worktree", "remove", "--force", worktreeDir)
+	absWT, err := filepath.Abs(worktreeDir)
+	if err != nil {
+		return fmt.Errorf("resolving worktree path: %w", err)
+	}
+	_, err = g.run("", "-C", repoDir, "worktree", "remove", "--force", absWT)
 	return err
 }
 
