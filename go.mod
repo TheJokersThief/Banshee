@@ -3,7 +3,7 @@ module github.com/thejokersthief/banshee/v2
 go 1.25.0
 
 require (
-	github.com/alecthomas/kong v1.14.0
+	github.com/alecthomas/kong v1.15.0
 	github.com/avast/retry-go/v4 v4.7.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.18.0
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -15,7 +15,7 @@ require (
 	github.com/kkyr/fig v0.5.0
 	github.com/sirupsen/logrus v1.9.4
 	github.com/stretchr/testify v1.11.1
-	github.com/tidwall/gjson v1.18.0
+	github.com/tidwall/gjson v1.19.0
 	github.com/tidwall/sjson v1.2.5
 	github.com/yargevad/filepathx v1.0.0
 	golang.org/x/oauth2 v0.36.0
