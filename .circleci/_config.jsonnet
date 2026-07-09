@@ -34,7 +34,11 @@ pipeline.new(
                             failfast: true,
                             race: true,
                         }},
-                        steps.run("curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin && golangci-lint run ./...", name='Lint'),
+                        // Pin both the installer script and golangci-lint to a fixed
+                        // version so CI is reproducible and never picks up an untested
+                        // latest release (an unpinned install once pulled a build whose
+                        // checksum failed to verify, breaking the job).
+                        steps.run("curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/v2.11.2/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.11.2 && golangci-lint run ./...", name='Lint'),
                     ],
                 )
             ],
