@@ -82,9 +82,15 @@ func (gc *GithubClient) CreatePullRequest(org, repo, title, body, base_branch, m
 
 	gc.log.WithField("AssignReviewers", gc.GlobalConfig.Options.AssignCodeReviewerIfNoneAssigned).Debug("Assigning reviewers, if enabled")
 	if gc.GlobalConfig.Options.AssignCodeReviewerIfNoneAssigned {
-		assignmentErr := gc.AssignDefaultReviewer(pr)
-		if assignmentErr != nil {
-			return "", assignmentErr
+		if assignmentErr := gc.AssignDefaultReviewer(pr); assignmentErr != nil {
+			// Reviewer assignment is best-effort. The pull request already exists at
+			// this point, so a failure here — e.g. the default team can't be resolved
+			// by the authenticated app, or isn't a collaborator on this repo — must not
+			// fail the whole migration for the repo and discard the created PR. Surface
+			// it as a warning and return the PR URL so the run is still reported as OK.
+			gc.log.WithField("pr_url", pr.GetHTMLURL()).Warnf(
+				"could not assign default reviewer %q: %v",
+				gc.GlobalConfig.Defaults.CodeReviewer, assignmentErr)
 		}
 	}
 
